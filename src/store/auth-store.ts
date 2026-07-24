@@ -1,0 +1,3 @@
+import {create} from 'zustand';import {persist} from 'zustand/middleware';import type {User} from '@/types';
+interface State{user:User|null;accessToken:string|null;setAuth:(u:User,t:string)=>void;logout:()=>void}
+export const useAuthStore=create<State>()(persist(set=>({user:null,accessToken:null,setAuth:(user,accessToken)=>set({user,accessToken}),logout:()=>set({user:null,accessToken:null})}),{name:'rknexora-auth'}));

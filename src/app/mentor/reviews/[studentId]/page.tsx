@@ -1,0 +1,1 @@
+import {PageHeader} from '@/components/ui';export default function Page({params}:{params:{studentId:string}}){return <><PageHeader title={`Review Student ${params.studentId}`}/><div className="card">Assignments, quizzes, live project and final report tabs.</div></>}
