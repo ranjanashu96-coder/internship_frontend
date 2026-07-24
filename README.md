@@ -15,3 +15,5 @@ Backend base URL is configured with `NEXT_PUBLIC_API_URL`.
 
 Open `/register`, or use the visible **Registration number se account activate karein** link on `/login`.
 The student must already exist in the backend `students` table through Admin/College manual creation or Excel upload.
+# internship
+student meanngement
