@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api,publicApi  } from "./api";
 
 
 import type {
@@ -67,6 +67,11 @@ export const authService = {
 
   forgot: (email: string) =>
     api.post("/auth/forgot-password", { email }),
+
+  logout: () =>
+  api.post(
+    "/auth/logout",
+  ),
 
   reset: (token: string, password: string) =>
     api.post("/auth/reset-password", {
@@ -208,11 +213,13 @@ export interface CreateModulePayload {
 }
 
 export interface CreateChapterPayload {
+  domain_id: number;
   module_id: number;
   chapter_number: number;
   chapter_name: string;
   content_type: ChapterContentType;
-  content_url: string;
+  file?: File;
+  content_url?: string;
 }
 
 export interface CreateAssignmentPayload {
@@ -318,7 +325,149 @@ export interface MentorStudentAssignmentParams {
     | "assigned"
     | "unassigned";
 }
+
+export interface AdminDashboardSummary {
+  total_colleges: number;
+  active_colleges: number;
+  pending_colleges: number;
+
+  total_mentors: number;
+  active_mentors: number;
+  inactive_mentors: number;
+
+  total_students: number;
+  active_students: number;
+  completed_students: number;
+  blocked_students: number;
+
+  paid_students: number;
+  pending_payments: number;
+  unassigned_students: number;
+
+  total_domains: number;
+  completion_rate: number;
+  payment_rate: number;
+}
+
+export interface AdminDashboardMonthlyRegistration {
+  key: string;
+  month: string;
+  year: number;
+  label: string;
+  registrations: number;
+}
+
+export interface AdminDashboardDomainDistribution {
+  domain_id: number;
+  domain_name: string;
+  student_count: number;
+}
+
+export interface AdminDashboardCollegeDistribution {
+  college_id: number;
+  college_name: string;
+  college_code: string | null;
+  student_count: number;
+}
+
+export interface AdminDashboardRecentStudent {
+  id: number;
+  registration_number: string;
+  student_id?: string | null;
+  name: string;
+  email?: string | null;
+  session?: string | null;
+  semester?: string | number | null;
+  internship_status: string;
+  payment_status: string;
+  created_at?: string | null;
+
+  college?: {
+    id: number;
+    name: string;
+    code?: string | null;
+  } | null;
+
+  domain?: {
+    id: number;
+    domain_name: string;
+  } | null;
+}
+
+export interface AdminDashboardRecentCollege {
+  id: number;
+  name: string;
+  code: string;
+  university?: string | null;
+  status: string;
+  created_at?: string | null;
+}
+
+export interface AdminDashboardData {
+  summary: AdminDashboardSummary;
+
+  student_status: Record<string, number>;
+  payment_status: Record<string, number>;
+  mentor_status: Record<string, number>;
+  college_status: Record<string, number>;
+
+  monthly_registrations: AdminDashboardMonthlyRegistration[];
+
+  domain_distribution: AdminDashboardDomainDistribution[];
+
+  college_distribution: AdminDashboardCollegeDistribution[];
+
+  recent_students: AdminDashboardRecentStudent[];
+
+  recent_colleges: AdminDashboardRecentCollege[];
+}
+
+const createChapterFormData = (
+  data: CreateChapterPayload | Partial<CreateChapterPayload>,
+) => {
+  const formData = new FormData();
+
+  if (data.domain_id !== undefined) {
+    formData.append("domain_id", String(data.domain_id));
+  }
+
+  if (data.module_id !== undefined) {
+    formData.append("module_id", String(data.module_id));
+  }
+
+  if (data.chapter_number !== undefined) {
+    formData.append("chapter_number", String(data.chapter_number));
+  }
+
+  if (data.chapter_name !== undefined) {
+    formData.append("chapter_name", data.chapter_name);
+  }
+
+  if (data.content_type !== undefined) {
+    formData.append("content_type", data.content_type);
+  }
+
+  if (data.content_url !== undefined) {
+    formData.append("content_url", data.content_url);
+  }
+
+  if (data.file) {
+    formData.append("file", data.file);
+  }
+
+  return formData;
+};
+
 export const adminService = {
+
+
+dashboard: () =>
+  api.get<
+    ApiResponse<AdminDashboardData>
+  >(
+    "/admin/dashboard",
+  ),
+
   /*
   |--------------------------------------------------------------------------
   | Colleges
@@ -626,17 +775,29 @@ deleteModule: (id: number) =>
   ),
 
 chapterById: (id: number) =>
-  api.get<ApiResponse<AdminChapter>>(`/admin/chapters/${id}`),
+  api.get<ApiResponse<AdminChapter>>(
+    `/admin/chapters/${id}`,
+  ),
 
 createChapter: (data: CreateChapterPayload) =>
-  api.post<ApiResponse<AdminChapter>>("/admin/chapters", data),
+  api.post<ApiResponse<AdminChapter>>(
+    "/admin/chapters",
+    createChapterFormData(data),
+  ),
 
-updateChapter: (id: number, data: Partial<CreateChapterPayload>) =>
-  api.put<ApiResponse<AdminChapter>>(`/admin/chapters/${id}`, data),
+updateChapter: (
+  id: number,
+  data: Partial<CreateChapterPayload>,
+) =>
+  api.put<ApiResponse<AdminChapter>>(
+    `/admin/chapters/${id}`,
+    createChapterFormData(data),
+  ),
 
 deleteChapter: (id: number) =>
-  api.delete<ApiResponse<Record<string, never>>>(`/admin/chapters/${id}`),
-
+  api.delete<ApiResponse<Record<string, never>>>(
+    `/admin/chapters/${id}`,
+  ),
   /*
   |--------------------------------------------------------------------------
   | Assignments
@@ -795,6 +956,126 @@ export interface CollegeStudentParams {
   semester?: string;
 }
 
+export interface CollegeDashboardStudent {
+  id: number;
+  registration_number: string;
+  student_id?: string | null;
+  name: string;
+  email?: string | null;
+  mobile?: string | null;
+  programme?: string | null;
+  major_subject?: string | null;
+  session?: string | null;
+  semester?: string | number | null;
+  internship_status: string;
+  payment_status: string;
+  total_progress: number;
+  mentor_assigned: boolean;
+  registered_at?: string | null;
+
+  domain?: {
+    id: number;
+    domain_name: string;
+    fee: number;
+    duration_hours: number;
+  } | null;
+}
+
+export interface CollegeDashboardData {
+  college: {
+    id: number;
+    name: string;
+    code: string;
+    university?: string | null;
+    principal_name?: string | null;
+    coordinator_name?: string | null;
+    email?: string | null;
+    mobile?: string | null;
+    address?: string | null;
+    state?: string | null;
+    district?: string | null;
+    pincode?: string | null;
+    logo?: string | null;
+    status: string;
+  };
+
+  summary: {
+    total_students: number;
+    active_students: number;
+    completed_students: number;
+    pending_students: number;
+    preloaded_students: number;
+    registered_students: number;
+    blocked_students: number;
+
+    paid_students: number;
+    pending_payments: number;
+    failed_payments: number;
+    refunded_payments: number;
+
+    assigned_students: number;
+    unassigned_students: number;
+
+    certificates_generated: number;
+
+    average_progress: number;
+    completion_rate: number;
+    payment_rate: number;
+    mentor_assignment_rate: number;
+    certificate_rate: number;
+
+    estimated_revenue: number;
+    college_share_amount: number;
+    rknexora_share_amount: number;
+  };
+
+  student_status: {
+    preloaded: number;
+    registered: number;
+    active: number;
+    completed: number;
+    blocked: number;
+  };
+
+  payment_status: {
+    pending: number;
+    paid: number;
+    failed: number;
+    refunded: number;
+  };
+
+  progress_distribution: {
+    not_started: number;
+    up_to_25: number;
+    up_to_50: number;
+    up_to_75: number;
+    up_to_99: number;
+    completed: number;
+  };
+
+  monthly_registrations: Array<{
+    key: string;
+    month: string;
+    year: number;
+    label: string;
+    registrations: number;
+  }>;
+
+  domain_distribution: Array<{
+    domain_id: number;
+    domain_name: string;
+    student_count: number;
+  }>;
+
+  session_distribution: Array<{
+    session: string;
+    student_count: number;
+  }>;
+
+  recent_students:
+    CollegeDashboardStudent[];
+}
+
 export const collegeService = {
   profile: () =>
     api.get<ApiResponse<College>>(
@@ -852,23 +1133,82 @@ export const collegeService = {
       },
     ),
 
-  analytics: () =>
-    api.get<ApiResponse<DashboardStats>>(
-      "/college/dashboard",
-    ),
+ dashboard: () =>
+  api.get<
+    ApiResponse<CollegeDashboardData>
+  >(
+    "/college/dashboard",
+  ),
 };
 
+export interface MentorAssignedStudentsData {
+  mentor: {
+    id: number;
+    name: string;
+    employee_id: string;
+    email: string;
+    domain_id: number;
+    college_id?: number | null;
+    status: string;
+  };
+
+  students: Student[];
+  total: number;
+}
+
+export interface MentorStudentParams {
+  search?: string;
+  status?: string;
+  session?: string;
+  semester?: string;
+}
+
+export interface MentorReviewPayload {
+  status:
+    | "approved"
+    | "rejected"
+    | "resubmit";
+
+  marks?: number | null;
+  mentor_comments?: string;
+}
+
+export interface MentorAssessmentPayload {
+  criteria_ratings: unknown;
+  overall_performance?: string;
+  supervisor_remarks?: string;
+}
+
 export const mentorService = {
-  students: (params?: object) =>
-    api.get<ApiResponse<Student[]>>("/mentor/students", {
-      params,
-    }),
+  students: (
+    params?: MentorStudentParams,
+  ) =>
+    api.get<
+      ApiResponse<MentorAssignedStudentsData>
+    >(
+      "/mentor/students",
+      {
+        params,
+      },
+    ),
 
-  review: (id: number, data: object) =>
-    api.put(`/mentor/submissions/${id}/review`, data),
+  review: (
+    submissionId: number,
+    data: MentorReviewPayload,
+  ) =>
+    api.put(
+      `/mentor/submissions/${submissionId}/review`,
+      data,
+    ),
 
-  assessment: (data: object) =>
-    api.post("/mentor/assessments", data),
+  assessment: (
+    studentId: number,
+    data: MentorAssessmentPayload,
+  ) =>
+    api.post(
+      `/mentor/assessments/${studentId}`,
+      data,
+    ),
 };
 
 export interface StudentDashboardData {
@@ -1250,6 +1590,33 @@ export interface StudentAnalyticsData {
   [key: string]: unknown;
 }
 
+export interface StudentGeneratedDocument {
+  id: number;
+
+  type:
+    | "acceptance_letter"
+    | "internship_report"
+    | "attendance_sheet"
+    | "logbook"
+    | "certificate"
+    | "assessment_marksheet"
+    | "offer_letter";
+
+  file_url: string;
+  generated_at?: string | null;
+  download_url?: string;
+  metadata?: Record<
+    string,
+    unknown
+  > | null;
+}
+
+export interface StudentDocumentsData {
+  documents:
+    StudentGeneratedDocument[];
+
+  total: number;
+}
 
 
 export const studentService = {
@@ -1304,6 +1671,24 @@ assignmentById: (
     }>
   >(
     `/student/assignments/${assignmentId}`,
+  ),
+
+documents: () =>
+  api.get<
+    ApiResponse<StudentDocumentsData>
+  >(
+    "/student/documents",
+  ),
+
+downloadDocument: (
+  documentId: number,
+) =>
+  api.get(
+    `/student/documents/${documentId}/download`,
+    {
+      responseType:
+        "blob",
+    },
   ),
 
 submitAssignment: (
@@ -1575,53 +1960,56 @@ export interface LockRegistrationResponse {
     | "login";
 }
 
-export interface PaymentOrderResponse {
-  payment_id?: number;
-  transaction_id: string;
-  student_id: number;
+export interface CashfreeOrderResponse {
+  order_id: string;
+  cf_order_id: string;
+  payment_session_id: string;
   amount: number;
+  currency: string;
 
-  domain?: {
+  student: {
+    id: number;
+    name: string;
+    email?: string | null;
+    mobile?: string | null;
+    registration_number: string;
+  };
+
+  domain: {
     id: number;
     domain_name: string;
   };
 }
 
-export interface PaymentSuccessResponse {
-  student_id: number;
-  transaction_id: string;
-  payment_status: "paid";
-  internship_status: "active";
-  registration_locked: true;
-  next_step: "login";
+export interface CashfreeVerificationPayload {
+  order_id: string;
+}
+
+export interface CashfreeVerificationResponse {
+  order_id: string;
+  cf_order_id?: string | number | null;
+  transaction_id?: string | null;
+  order_status?: string;
+  payment_status: "paid" | "pending" | "failed";
+  internship_status?: string;
+  amount?: number;
+  currency?: string;
 }
 
 export const registrationService = {
-  verify: (
-    registration_number: string,
-  ) =>
-    api.post<
-      ApiResponse<RegistrationVerification>
-    >(
+  verify: (registration_number: string) =>
+    publicApi.post(
       "/registration/verify",
-      {
-        registration_number,
-      },
+      { registration_number },
     ),
 
   domains: () =>
-    api.get<
-      ApiResponse<Domain[]>
-    >(
+    publicApi.get(
       "/registration/domains",
     ),
 
-  saveDetails: (
-    data: object,
-  ) =>
-    api.post<
-      ApiResponse<SaveRegistrationResponse>
-    >(
+  saveDetails: (data: object) =>
+    publicApi.post(
       "/registration/details",
       data,
     ),
@@ -1629,9 +2017,7 @@ export const registrationService = {
   uploadDocuments: (
     data: FormData,
   ) =>
-    api.post<
-      ApiResponse<UploadDocumentsResponse>
-    >(
+    publicApi.post(
       "/registration/documents",
       data,
     ),
@@ -1639,53 +2025,40 @@ export const registrationService = {
   lockRegistration: (
     student_id: number,
   ) =>
-    api.post<
-      ApiResponse<LockRegistrationResponse>
-    >(
+    publicApi.post(
       "/registration/lock",
-      {
-        student_id,
-      },
+      { student_id },
     ),
 
   createPaymentOrder: (
-    student_id: number,
+    studentId: number,
   ) =>
-    api.post<
-      ApiResponse<PaymentOrderResponse>
-    >(
+    publicApi.post(
       "/registration/payment/order",
       {
-        student_id,
+        student_id: studentId,
       },
     ),
 
-  simulatePaymentSuccess: (
-    transaction_id: string,
+  verifyPayment: (
+    orderId: string,
   ) =>
-    api.post<
-      ApiResponse<PaymentSuccessResponse>
-    >(
-      "/registration/payment/simulate-success",
+    publicApi.post(
+      "/registration/payment/verify",
       {
-        transaction_id,
+        order_id: orderId,
       },
     ),
 
-downloadReceipt: (
-  transactionId: string,
-  registrationNumber: string,
-) =>
-  api.get(
-    `/registration/payment/receipt/${encodeURIComponent(
-      transactionId,
-    )}`,
-    {
-      params: {
-        registration_number:
-          registrationNumber,
+  downloadPaymentReceipt: (
+    transactionId: string,
+  ) =>
+    publicApi.get(
+      `/registration/payment/receipt/${encodeURIComponent(
+        transactionId,
+      )}`,
+      {
+        responseType: "blob",
       },
-      responseType: "blob",
-    },
-  ),
+    ),
 };

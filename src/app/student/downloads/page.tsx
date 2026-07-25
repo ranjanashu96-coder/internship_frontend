@@ -1,1 +1,297 @@
-import {Download} from 'lucide-react';import {Button,PageHeader} from '@/components/ui';const docs=['Acceptance Letter','Internship Certificate','Digital Logbook','Attendance Sheet'];export default function Page(){return <><PageHeader title="Download Center"/><div className="grid gap-4 sm:grid-cols-2">{docs.map(d=><div className="card flex items-center justify-between" key={d}><div><h3 className="font-semibold">{d}</h3><p className="text-sm text-slate-500">PDF document</p></div><Button variant="secondary"><Download size={17} className="mr-2"/>Download</Button></div>)}</div></>}
+"use client";
+
+import { useEffect, useState } from "react";
+import {
+  Download,
+  FileText,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import {
+  Button,
+  PageHeader,
+} from "@/components/ui";
+
+import {
+  studentService,
+  type StudentGeneratedDocument,
+} from "@/lib/services";
+
+
+
+const documentLabels: Record<string, string> = {
+  acceptance_letter: "Acceptance Letter",
+  certificate: "Internship Certificate",
+  digital_logbook: "Digital Logbook",
+  logbook: "Digital Logbook",
+  attendance_sheet: "Attendance Sheet",
+  internship_report: "Internship Report",
+  assessment_marksheet: "Assessment Marksheet",
+  offer_letter: "Internship Offer Letter",
+};
+
+export default function DownloadCenterPage() {
+  const [
+  documents,
+  setDocuments,
+] = useState<
+  StudentGeneratedDocument[]
+>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const loadDocuments =
+  async () => {
+    setLoading(true);
+
+    try {
+      const response =
+        await studentService
+          .documents();
+
+      setDocuments(
+        response.data.data
+          ?.documents ||
+          [],
+      );
+    } catch (
+      error: unknown
+    ) {
+      console.error(
+        "DOCUMENT FETCH ERROR:",
+        error,
+      );
+
+      const requestError =
+        error as {
+          response?: {
+            data?: {
+              message?: string;
+            };
+          };
+        };
+
+      toast.error(
+        requestError.response
+          ?.data?.message ||
+          "Documents could not be loaded",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadDocuments();
+  }, []);
+
+  const downloadDocument =
+  async (
+    document:
+      StudentGeneratedDocument,
+  ) => {
+    try {
+      const response =
+        await studentService
+          .downloadDocument(
+            document.id,
+          );
+
+      const contentTypeHeader =
+        response.headers[
+          "content-type"
+        ];
+
+      const contentType =
+        typeof contentTypeHeader === "string"
+          ? contentTypeHeader
+          : Array.isArray(contentTypeHeader)
+          ? contentTypeHeader[0]
+          : "application/pdf";
+
+      const blob =
+        new Blob(
+          [response.data],
+          {
+            type:
+              contentType,
+          },
+        );
+
+      const blobUrl =
+        window.URL.createObjectURL(
+          blob,
+        );
+
+      const anchor =
+        window.document
+          .createElement(
+            "a",
+          );
+
+      const label =
+        documentLabels[
+          document.type
+        ] ||
+        document.type;
+
+      anchor.href =
+        blobUrl;
+
+      anchor.download =
+        `${label}.pdf`;
+
+      window.document.body
+        .appendChild(
+          anchor,
+        );
+
+      anchor.click();
+      anchor.remove();
+
+      window.URL
+        .revokeObjectURL(
+          blobUrl,
+        );
+
+      toast.success(
+        "Document downloaded successfully",
+      );
+    } catch (
+      error: unknown
+    ) {
+      console.error(
+        "DOWNLOAD ERROR:",
+        error,
+      );
+
+      const requestError =
+        error as {
+          response?: {
+            data?: {
+              message?: string;
+            };
+          };
+        };
+
+      toast.error(
+        requestError.response
+          ?.data?.message ||
+          "Document could not be downloaded",
+      );
+    }
+  };
+
+  return (
+    <>
+      <PageHeader
+        title="Download Center"
+        description="Download your internship documents and certificates."
+      />
+
+      <div className="mb-5 flex justify-end">
+        <Button
+          variant="secondary"
+          onClick={loadDocuments}
+          disabled={loading}
+        >
+          <RefreshCw
+            className={`mr-2 h-4 w-4 ${
+              loading
+                ? "animate-spin"
+                : ""
+            }`}
+          />
+
+          Refresh
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="grid min-h-64 place-items-center rounded-2xl border border-slate-200 bg-white">
+          <div className="text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-blue-600" />
+
+            <p className="mt-3 text-sm text-slate-500">
+              Loading documents...
+            </p>
+          </div>
+        </div>
+      ) : documents.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+          <FileText className="mx-auto h-12 w-12 text-slate-300" />
+
+          <h3 className="mt-4 font-semibold text-slate-800">
+            No documents available
+          </h3>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Documents will appear here
+            after they are generated by
+            the admin or mentor.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {documents.map(
+            (document) => (
+              <div
+                key={document.id}
+                className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
+                    <FileText className="h-6 w-6" />
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-slate-900">
+                      {documentLabels[
+                        document.type
+                      ] ??
+                        document.type}
+                    </h3>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      PDF document
+                    </p>
+
+                    {document.generated_at && (
+                      <p className="mt-1 text-xs text-slate-400">
+                        Generated:{" "}
+                        {new Date(
+                          document.generated_at,
+                        ).toLocaleDateString(
+                          "en-IN",
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    downloadDocument(
+                      document,
+                    )
+                  }
+                  disabled={
+                    !document.file_url
+                  }
+                >
+                  <Download className="mr-2 h-4 w-4" />
+
+                  Download
+                </Button>
+              </div>
+            ),
+          )}
+        </div>
+      )}
+    </>
+  );
+}

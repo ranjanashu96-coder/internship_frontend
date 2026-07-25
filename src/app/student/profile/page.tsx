@@ -45,6 +45,24 @@ import {
   type StudentProfileUpdatePayload,
 } from "@/lib/services";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "") ||
+  "http://localhost:5000";
+
+const getFileUrl = (path?: string | null) => {
+  if (!path) return null;
+
+  if (
+    path.startsWith("http://") ||
+    path.startsWith("https://") ||
+    path.startsWith("data:")
+  ) {
+    return path;
+  }
+
+  return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+};
+
 const getErrorMessage = (
   error: unknown,
 ) => {
@@ -297,9 +315,7 @@ function ProfileAvatar({
   name?: string | null;
   photo?: string | null;
 }) {
-  const initials = String(
-    name || "Student",
-  )
+  const initials = String(name || "Student")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
@@ -307,12 +323,17 @@ function ProfileAvatar({
     .join("")
     .toUpperCase();
 
-  if (photo) {
+  const photoUrl = getFileUrl(photo);
+
+  if (photoUrl) {
     return (
       <img
-        src={photo}
+        src={photoUrl}
         alt={name || "Student"}
         className="h-24 w-24 rounded-2xl border-4 border-white/20 object-cover shadow-lg"
+        onError={(event) => {
+          event.currentTarget.style.display = "none";
+        }}
       />
     );
   }
@@ -554,19 +575,19 @@ function EditProfileModal({
             </p>
           </div>
 
-          {form.photo && (
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Photo Preview
-              </p>
+         {form.photo && (
+  <div className="rounded-xl bg-slate-50 p-4">
+    <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+      Photo Preview
+    </p>
 
-              <img
-                src={form.photo}
-                alt="Profile preview"
-                className="h-20 w-20 rounded-xl object-cover"
-              />
-            </div>
-          )}
+    <img
+      src={getFileUrl(form.photo) || ""}
+      alt="Profile preview"
+      className="h-20 w-20 rounded-xl object-cover"
+    />
+  </div>
+)}
         </div>
 
         <div className="flex justify-end gap-3 border-t border-slate-100 p-5">
@@ -690,16 +711,28 @@ export default function StudentProfilePage() {
     );
   }
 
-  const academics =
-    profile.academics || {};
+ const academics =
+  profile.academics || {};
 
-  const academicEntries =
-    Object.entries(academics).filter(
-      ([, value]) =>
-        value !== null &&
-        value !== undefined &&
-        value !== "",
-    );
+const academicDocuments =
+  academics.documents &&
+  typeof academics.documents === "object" &&
+  !Array.isArray(academics.documents)
+    ? (academics.documents as {
+        photo?: string | null;
+        marksheet?: string | null;
+        identity_document?: string | null;
+      })
+    : {};
+
+const academicEntries =
+  Object.entries(academics).filter(
+    ([key, value]) =>
+      key !== "documents" &&
+      value !== null &&
+      value !== undefined &&
+      value !== "",
+  );
 
   return (
     <div className="space-y-6">
@@ -984,7 +1017,7 @@ export default function StudentProfilePage() {
           />
         </SectionCard>
       </div>
-
+{/* 
       <SectionCard
         title="College Information"
         description="College and university contact information."
@@ -1052,7 +1085,7 @@ export default function StudentProfilePage() {
             .join(", ")}
           icon={MapPin}
         />
-      </SectionCard>
+      </SectionCard> */}
 
       <div className="grid gap-6 xl:grid-cols-2">
         <SectionCard
@@ -1111,74 +1144,149 @@ export default function StudentProfilePage() {
             icon={CalendarDays}
           />
         </SectionCard>
+<section className="card">
+  <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
+    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
+      <BookOpen size={21} />
+    </div>
 
-        <section className="card">
-          <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
-              <BookOpen size={21} />
-            </div>
+    <div>
+      <h2 className="text-lg font-bold text-slate-900">
+        Additional Academics
+      </h2>
 
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                Additional Academics
-              </h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Academic information submitted during registration.
+      </p>
+    </div>
+  </div>
 
-              <p className="mt-1 text-sm text-slate-500">
-                Academic information
-                submitted during
-                registration.
+  <div className="mt-5 space-y-6">
+    {academicEntries.length > 0 ? (
+      <div className="grid gap-4 sm:grid-cols-2">
+        {academicEntries.map(([key, value]) => (
+          <InformationRow
+            key={key}
+            label={key
+              .replace(/_/g, " ")
+              .replace(/\b\w/g, (letter) =>
+                letter.toUpperCase(),
+              )}
+            value={
+              typeof value === "object"
+                ? JSON.stringify(value)
+                : String(value)
+            }
+            icon={GraduationCap}
+          />
+        ))}
+      </div>
+    ) : (
+      <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center">
+        <GraduationCap
+          size={38}
+          className="mx-auto text-slate-300"
+        />
+
+        <p className="mt-3 text-sm font-medium text-slate-500">
+          No additional academic information available.
+        </p>
+      </div>
+    )}
+
+    {(academicDocuments.photo ||
+      academicDocuments.marksheet ||
+      academicDocuments.identity_document) && (
+      <div>
+        <h3 className="mb-4 text-sm font-bold text-slate-900">
+          Uploaded Documents
+        </h3>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {academicDocuments.photo && (
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Student Photo
               </p>
+
+              <img
+                src={
+                  getFileUrl(
+                    academicDocuments.photo,
+                  ) || ""
+                }
+                alt="Student"
+                className="h-40 w-full rounded-xl object-cover"
+              />
             </div>
-          </div>
+          )}
 
-          <div className="mt-5">
-            {academicEntries.length >
-            0 ? (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {academicEntries.map(
-                  ([key, value]) => (
-                    <InformationRow
-                      key={key}
-                      label={key
-                        .replace(
-                          /_/g,
-                          " ",
-                        )
-                        .replace(
-                          /\b\w/g,
-                          (letter) =>
-                            letter.toUpperCase(),
-                        )}
-                      value={
-                        typeof value ===
-                        "object"
-                          ? JSON.stringify(
-                              value,
-                            )
-                          : String(value)
-                      }
-                      icon={
-                        GraduationCap
-                      }
-                    />
-                  ),
-                )}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center">
-                <GraduationCap
-                  size={38}
-                  className="mx-auto text-slate-300"
-                />
+          {academicDocuments.marksheet && (
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Marksheet
+              </p>
 
-                <p className="mt-3 text-sm font-medium text-slate-500">
-                  No additional academic
-                  information available.
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
+              <iframe
+                src={
+                  getFileUrl(
+                    academicDocuments.marksheet,
+                  ) || ""
+                }
+                title="Student marksheet"
+                className="h-40 w-full rounded-xl border"
+              />
+
+              <a
+                href={
+                  getFileUrl(
+                    academicDocuments.marksheet,
+                  ) || "#"
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex text-sm font-semibold text-blue-600 hover:text-blue-700"
+              >
+                Open Marksheet
+              </a>
+            </div>
+          )}
+
+          {academicDocuments.identity_document && (
+            <div className="rounded-xl border border-slate-200 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Identity Document
+              </p>
+
+              <iframe
+                src={
+                  getFileUrl(
+                    academicDocuments.identity_document,
+                  ) || ""
+                }
+                title="Student identity document"
+                className="h-40 w-full rounded-xl border"
+              />
+
+              <a
+                href={
+                  getFileUrl(
+                    academicDocuments.identity_document,
+                  ) || "#"
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex text-sm font-semibold text-blue-600 hover:text-blue-700"
+              >
+                Open Identity Document
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+  </div>
+</section>
       </div>
 
       {editing && (

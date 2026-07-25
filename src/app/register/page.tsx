@@ -25,6 +25,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { load } from "@cashfreepayments/cashfree-js";
 
 import { Button, Input } from "@/components/ui";
 import {
@@ -813,210 +814,162 @@ if (
       }
     };
 
-  const pay =
-    async () => {
-      if (!studentId) {
-        toast.error(
-          "Student ID is missing",
-        );
-        return;
-      }
+  const pay = async () => {
+    if (!studentId) {
+      toast.error("Student ID is missing");
+      return;
+    }
 
-      if (
-        !registrationLocked
-      ) {
-        toast.error(
-          "Confirm and lock registration before payment",
-        );
-        return;
-      }
-
-      setBusy(true);
-
-      try {
-        const orderResponse =
-          await registrationService
-            .createPaymentOrder(
-              studentId,
-            );
-
-        const transactionId =
-          orderResponse.data.data
-            .transaction_id;
-
-        await registrationService
-          .simulatePaymentSuccess(
-            transactionId,
-          );
-
-          setSuccessfulTransactionId(
-  transactionId,
-);
-
-        setCompleted(
-          true,
-        );
-
-        toast.success(
-          "Payment successful. Account activated.",
-        );
-      } catch (error) {
-        toast.error(
-          getErrorMessage(
-            error,
-            "Payment failed",
-          ),
-        );
-      } finally {
-        setBusy(false);
-      }
-    };
-
-    const downloadReceipt =
-  async () => {
-    if (!successfulTransactionId) {
+    if (!registrationLocked) {
       toast.error(
-        "Transaction ID is missing",
+        "Confirm and lock registration before payment",
       );
+      return;
+    }
+
+    if (busy) {
       return;
     }
 
     setBusy(true);
 
     try {
-      const registrationNumber =
-        getValues(
-          "registration_number",
-        );
-
       const response =
-        await registrationService
-          .downloadReceipt(
-            successfulTransactionId,
-            registrationNumber,
-          );
-
-      const blob = new Blob(
-        [response.data],
-        {
-          type: "application/pdf",
-        },
-      );
-
-      const downloadUrl =
-        window.URL.createObjectURL(
-          blob,
+        await registrationService.createPaymentOrder(
+          studentId,
         );
 
-      const anchor =
-        document.createElement(
-          "a",
-        );
+      const order =
+  response.data.data;
 
-      anchor.href =
-        downloadUrl;
+if (
+  !order.payment_session_id
+) {
+  throw new Error(
+    "Cashfree payment session ID is missing",
+  );
+}
 
-      anchor.download =
-        `receipt-${registrationNumber}.pdf`;
+sessionStorage.setItem(
+  "cashfree_order_id",
+  order.order_id,
+);
 
-      document.body.appendChild(
-        anchor,
-      );
+sessionStorage.removeItem(
+  "cashfree_transaction_id",
+);
 
-      anchor.click();
-      anchor.remove();
+      const cashfree =
+  await load({
+    mode:
+      process.env
+        .NEXT_PUBLIC_CASHFREE_MODE ===
+      "production"
+        ? "production"
+        : "sandbox",
+  });
 
-      window.URL.revokeObjectURL(
-        downloadUrl,
-      );
-
-      toast.success(
-        "Receipt downloaded successfully",
-      );
+await cashfree.checkout({
+  paymentSessionId:
+    order.payment_session_id,
+  redirectTarget: "_self",
+});
+      await cashfree.checkout({
+        paymentSessionId:
+          order.payment_session_id,
+        redirectTarget: "_self",
+      });
     } catch (error) {
+      console.error(
+        "CASHFREE CHECKOUT ERROR:",
+        error,
+      );
+
       toast.error(
         getErrorMessage(
           error,
-          "Receipt could not be downloaded",
+          "Unable to start Cashfree payment",
         ),
       );
-    } finally {
+
       setBusy(false);
     }
   };
 
-  if (completed) {
-    return (
-      <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#071a2f] p-5">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_80%_80%,rgba(59,130,246,0.22),transparent_32%),linear-gradient(135deg,#061426_0%,#0a2848_55%,#0d3761_100%)]" />
+ 
 
-        <div className="relative z-10 w-full max-w-xl rounded-[2rem] border border-white/15 bg-white p-7 text-center shadow-2xl shadow-black/30 sm:p-10">
-          <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-emerald-100 text-emerald-600">
-            <CheckCircle2 className="h-11 w-11" />
-          </div>
+  // if (completed) {
+  //   return (
+  //     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#071a2f] p-5">
+  //       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_80%_80%,rgba(59,130,246,0.22),transparent_32%),linear-gradient(135deg,#061426_0%,#0a2848_55%,#0d3761_100%)]" />
 
-          <p className="mt-6 text-xs font-black uppercase tracking-[0.25em] text-emerald-600">
-            Account Activated
-          </p>
+  //       <div className="relative z-10 w-full max-w-xl rounded-[2rem] border border-white/15 bg-white p-7 text-center shadow-2xl shadow-black/30 sm:p-10">
+  //         <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+  //           <CheckCircle2 className="h-11 w-11" />
+  //         </div>
 
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-[#071a2f]">
-            Registration Complete
-          </h1>
+  //         <p className="mt-6 text-xs font-black uppercase tracking-[0.25em] text-emerald-600">
+  //           Account Activated
+  //         </p>
 
-          <p className="mx-auto mt-3 max-w-md leading-7 text-slate-500">
-            Your internship account is now active. Login using username{" "}
-            <strong className="text-[#071a2f]">
-              {getValues("username")}
-            </strong>
-            .
-          </p>
+  //         <h1 className="mt-3 text-3xl font-black tracking-tight text-[#071a2f]">
+  //           Registration Complete
+  //         </h1>
 
-          <div className="mt-7 rounded-2xl border border-emerald-100 bg-emerald-50 p-5 text-left">
-            <div className="flex items-start gap-3">
-              <BadgeCheck className="mt-0.5 h-6 w-6 shrink-0 text-emerald-600" />
-              <div>
-                <p className="font-bold text-emerald-900">
-                  Payment and registration verified
-                </p>
-                <p className="mt-1 text-sm leading-6 text-emerald-700">
-                  Keep your payment receipt for future reference.
-                </p>
-              </div>
-            </div>
-          </div>
+  //         <p className="mx-auto mt-3 max-w-md leading-7 text-slate-500">
+  //           Your internship account is now active. Login using username{" "}
+  //           <strong className="text-[#071a2f]">
+  //             {getValues("username")}
+  //           </strong>
+  //           .
+  //         </p>
 
-          <div className="mt-7 grid gap-3 sm:grid-cols-2">
-            <Button
-              variant="secondary"
-              className="h-12 rounded-xl"
-              onClick={downloadReceipt}
-              disabled={busy || !successfulTransactionId}
-            >
-              {busy ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Downloading...
-                </>
-              ) : (
-                <>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Download Receipt
-                </>
-              )}
-            </Button>
+  //         <div className="mt-7 rounded-2xl border border-emerald-100 bg-emerald-50 p-5 text-left">
+  //           <div className="flex items-start gap-3">
+  //             <BadgeCheck className="mt-0.5 h-6 w-6 shrink-0 text-emerald-600" />
+  //             <div>
+  //               <p className="font-bold text-emerald-900">
+  //                 Payment and registration verified
+  //               </p>
+  //               <p className="mt-1 text-sm leading-6 text-emerald-700">
+  //                 Keep your payment receipt for future reference.
+  //               </p>
+  //             </div>
+  //           </div>
+  //         </div>
 
-            <Button
-              className="h-12 rounded-xl bg-[#071a2f] hover:bg-[#0b294b]"
-              onClick={() => router.push("/login")}
-            >
-              Go to Login
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  //         <div className="mt-7 grid gap-3 sm:grid-cols-2">
+  //           {/* <Button
+  //             variant="secondary"
+  //             className="h-12 rounded-xl"
+  //             onClick={downloadReceipt}
+  //             disabled={busy || !successfulTransactionId}
+  //           >
+  //             {busy ? (
+  //               <>
+  //                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+  //                 Downloading...
+  //               </>
+  //             ) : (
+  //               <>
+  //                 <FileText className="mr-2 h-4 w-4" />
+  //                 Download Receipt
+  //               </>
+  //             )}
+  //           </Button> */}
+
+  //           <Button
+  //             className="h-12 rounded-xl bg-[#071a2f] hover:bg-[#0b294b]"
+  //             onClick={() => router.push("/login")}
+  //           >
+  //             Go to Login
+  //             <ArrowRight className="ml-2 h-4 w-4" />
+  //           </Button>
+  //         </div>
+  //       </div>
+  //     </main>
+  //   );
+  // }
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-50">
@@ -1139,7 +1092,7 @@ if (
                 placeholder="e.g. RKN20260001"
               />
 
-              <Error
+              <FormError
                 text={
                   errors
                     .registration_number
@@ -1447,7 +1400,7 @@ if (
                 </div>
               </div>
 
-              <Error text={errors.domain_id?.message} />
+              <FormError text={errors.domain_id?.message} />
 
               {selectedDomain && (
                 <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-cyan-50 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -1872,13 +1825,23 @@ if (
                   }
                 </p>
 
-                <p className="mt-2 text-xs text-slate-500">
-                  Demo mode simulates a
-                  successful payment.
-                  Replace this action
-                  with Razorpay checkout
-                  in production.
-                </p>
+                <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+  <div className="flex items-start gap-3">
+    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+
+    <div>
+      <p className="text-sm font-bold text-emerald-900">
+        Secure online payment
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-emerald-700">
+        You will be redirected to Cashfree&apos;s secure checkout.
+        Your account will activate only after server-side payment
+        verification.
+      </p>
+    </div>
+  </div>
+</div>
               </div>
 
               <div className="mt-6 flex justify-end">
@@ -1913,7 +1876,7 @@ if (
   );
 }
 
-function Error({
+function FormError({
   text,
 }: {
   text?: string;
@@ -1948,7 +1911,7 @@ function Field({
 
       {children}
 
-      <Error text={error} />
+      <FormError text={error} />
     </label>
   );
 }

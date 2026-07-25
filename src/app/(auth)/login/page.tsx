@@ -92,32 +92,92 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = async (values: LoginFormValues) => {
+  const onSubmit =
+  async (
+    values: LoginFormValues,
+  ) => {
     try {
-      const response = await authService.login({
-        identifier: values.identifier.trim(),
-        password: values.password,
-      });
+      const response =
+        await authService.login({
+          identifier:
+            values.identifier.trim(),
 
-      const { user, accessToken } = response.data.data;
+          password:
+            values.password,
+        });
 
-      setAuth(user, accessToken);
+      const responseData =
+        response.data?.data;
 
-      const redirectPath = roleRedirect[user.role];
+      const user =
+        responseData?.user;
 
-      if (!redirectPath) {
-        toast.error(`Unknown role received: ${user.role}`);
-        return;
+      const accessToken =
+        responseData?.accessToken;
+
+      if (
+        !user ||
+        !accessToken
+      ) {
+        throw new Error(
+          "Invalid login response",
+        );
       }
 
-      toast.success("Login successful");
+      const redirectPath =
+        roleRedirect[
+          user.role
+        ];
 
-      router.replace(redirectPath);
-    } catch (error: any) {
-      console.error("LOGIN ERROR:", error);
+      /*
+       * Do not store authentication
+       * when the received role is unknown.
+       */
+      if (!redirectPath) {
+        throw new Error(
+          `Unknown role received: ${user.role}`,
+        );
+      }
+
+      /*
+       * Store user and access token.
+       * The refresh token is already stored
+       * by the backend as an HttpOnly cookie.
+       */
+      setAuth(
+        user,
+        accessToken,
+      );
+
+      toast.success(
+        "Login successful",
+      );
+
+      router.replace(
+        redirectPath,
+      );
+
+      router.refresh();
+    } catch (error: unknown) {
+      console.error(
+        "LOGIN ERROR:",
+        error,
+      );
+
+      const requestError =
+        error as {
+          response?: {
+            data?: {
+              message?: string;
+            };
+          };
+          message?: string;
+        };
 
       toast.error(
-        error?.response?.data?.message ??
+        requestError.response
+          ?.data?.message ||
+          requestError.message ||
           "Login failed. Please check your username and password.",
       );
     }

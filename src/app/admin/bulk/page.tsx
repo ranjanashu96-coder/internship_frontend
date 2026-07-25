@@ -523,10 +523,24 @@ export default function Page() {
           );
 
           setDomains(
-            extractItems(
-              domainResponse
-                .data.data,
-            ),
+            (
+              extractItems(
+                domainResponse
+                  .data.data as
+                  | PaginatedData<Domain>
+                  | Domain[],
+              ) as Domain[]
+            ).map((domain) => ({
+              ...domain,
+              fee:
+                typeof domain.fee ===
+                "number"
+                  ? domain.fee
+                  : Number(
+                      domain.fee ??
+                        0,
+                    ),
+            })),
           );
 
           setMentors(
