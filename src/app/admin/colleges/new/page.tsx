@@ -42,7 +42,38 @@ const collegeSchema = z
       .number()
       .min(0, "Share cannot be negative")
       .max(100, "Share cannot exceed 100"),
-    status: z.enum(["active", "inactive", "pending"]),
+      logo: z
+  .preprocess(
+    (value) => {
+      if (value instanceof FileList) {
+        return value.item(0) ?? undefined;
+      }
+
+      return value;
+    },
+    z
+      .instanceof(File)
+      .optional(),
+  )
+  .refine(
+    (file) =>
+      !file ||
+      file.size <=
+        2 * 1024 * 1024,
+    "Logo must be 2 MB or smaller",
+  )
+  .refine(
+    (file) =>
+      !file ||
+      [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+      ].includes(file.type),
+    "Only JPG, PNG and WEBP files are allowed",
+  ),
+
+    status: z.enum(["active", "inactive"]),
     admin_username: z.string().trim().min(3, "Admin username is required"),
     admin_email: z.string().trim().email("Valid admin email is required"),
     admin_password: z
@@ -70,6 +101,7 @@ export default function AddCollegePage() {
   const {
     register,
     handleSubmit,
+     setValue,
     formState: { errors, isSubmitting },
   } = useForm<CollegeFormValues>({
     resolver: zodResolver(collegeSchema),
@@ -95,25 +127,61 @@ export default function AddCollegePage() {
     },
   });
 
-  const onSubmit = async (values: CollegeFormValues) => {
+ const onSubmit = async (
+  values: CollegeFormValues,
+) => {
   try {
-    const { confirm_password, ...formData } = values;
+    const {
+      confirm_password,
+      logo,
+      ...formData
+    } = values;
 
-    const payload: CreateCollegePayload = {
-      ...formData,
-      college_share: Number(formData.college_share),
-      rknexora_share: Number(formData.rknexora_share),
-    };
+    const payload =
+      new FormData();
 
-    await adminService.createCollege(payload);
+    Object.entries(
+      formData,
+    ).forEach(
+      ([key, value]) => {
+        if (
+          value !==
+            undefined &&
+          value !== null
+        ) {
+          payload.append(
+            key,
+            String(value),
+          );
+        }
+      },
+    );
 
-    toast.success("College and college admin created successfully");
+    if (logo) {
+      payload.append(
+        "logo",
+        logo,
+      );
+    }
 
-    router.push("/admin/colleges");
+    await adminService
+      .createCollege(
+        payload,
+      );
+
+    toast.success(
+      "College and college admin created successfully",
+    );
+
+    router.push(
+      "/admin/colleges",
+    );
+
     router.refresh();
   } catch (error: any) {
     toast.error(
-      error?.response?.data?.message ??
+      error?.response?.data
+        ?.message ??
         "Unable to create college",
     );
   }
@@ -147,6 +215,11 @@ export default function AddCollegePage() {
             >
               <Input {...register("code")} />
             </Field>
+<Input
+  type="file"
+  accept="image/jpeg,image/png,image/webp"
+  {...register("logo")}
+/>
 
             <Field
               label="University"

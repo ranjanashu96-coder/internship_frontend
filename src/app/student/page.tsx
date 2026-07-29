@@ -13,6 +13,9 @@ import {
   Loader2,
   RefreshCw,
   Target,
+  BrainCircuit,
+  Trophy,
+  Clock3,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -270,12 +273,13 @@ export default function StudentDashboardPage() {
   }
 
   const {
-    student,
-    stats,
-    attendance_summary,
-    status,
-    recent_activities,
-  } = dashboard;
+  student,
+  stats,
+  attendance_summary,
+  status,
+  eligibility,
+  recent_activities,
+} = dashboard;
 
   const overallProgress =
     Math.min(
@@ -399,60 +403,135 @@ export default function StudentDashboardPage() {
 
       <section className="grid gap-6 xl:grid-cols-3">
         <div className="card xl:col-span-2">
-          <h2 className="text-lg font-bold text-slate-900">
-            Learning Summary
-          </h2>
+  <h2 className="text-lg font-bold text-slate-900">
+    Learning Summary
+  </h2>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl bg-blue-50 p-4">
-              <p className="text-sm text-slate-500">
-                Chapters Completed
-              </p>
+  <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="rounded-xl bg-blue-50 p-4">
+      <p className="text-sm text-slate-500">
+        Chapters Completed
+      </p>
 
-              <p className="mt-2 text-2xl font-bold text-slate-900">
-                {stats.completed_chapters}
-                <span className="text-base font-medium text-slate-400">
-                  /{stats.total_chapters}
-                </span>
-              </p>
-            </div>
+      <p className="mt-2 text-2xl font-bold text-slate-900">
+        {stats.completed_chapters}
+        <span className="text-base font-medium text-slate-400">
+          /{stats.total_chapters}
+        </span>
+      </p>
 
-            <div className="rounded-xl bg-emerald-50 p-4">
-              <p className="text-sm text-slate-500">
-                Learning Hours
-              </p>
+      <p className="mt-1 text-xs text-blue-600">
+        {formatPercentage(
+          stats.course_progress,
+        )} complete
+      </p>
+    </div>
 
-              <p className="mt-2 text-2xl font-bold text-slate-900">
-                {stats.learning_hours}
-                <span className="text-base font-medium text-slate-400">
-                  /{stats.required_hours}
-                </span>
-              </p>
-            </div>
+    <div className="rounded-xl bg-emerald-50 p-4">
+      <p className="text-sm text-slate-500">
+        Learning Hours
+      </p>
 
-            <div className="rounded-xl bg-violet-50 p-4">
-              <p className="text-sm text-slate-500">
-                Logbook Entries
-              </p>
+      <p className="mt-2 text-2xl font-bold text-slate-900">
+        {stats.learning_hours}
+        <span className="text-base font-medium text-slate-400">
+          /{stats.required_hours}
+        </span>
+      </p>
 
-              <p className="mt-2 text-2xl font-bold text-slate-900">
-                {stats.logbook_entries}
-              </p>
-            </div>
+      <p className="mt-1 text-xs text-emerald-600">
+        {stats.hours_remaining} hours remaining
+      </p>
+    </div>
 
-            <div className="rounded-xl bg-amber-50 p-4">
-              <p className="text-sm text-slate-500">
-                Assignment Progress
-              </p>
+    <div className="rounded-xl bg-violet-50 p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-500">
+          Quizzes Passed
+        </p>
 
-              <p className="mt-2 text-2xl font-bold text-slate-900">
-                {formatPercentage(
-                  stats.assignment_progress,
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
+        <BrainCircuit
+          size={20}
+          className="text-violet-600"
+        />
+      </div>
+
+      <p className="mt-2 text-2xl font-bold text-slate-900">
+        {stats.quizzes_passed}
+        <span className="text-base font-medium text-slate-400">
+          /{stats.total_quizzes}
+        </span>
+      </p>
+
+      <p className="mt-1 text-xs text-violet-600">
+        {formatPercentage(
+          stats.quiz_progress,
+        )} passed
+      </p>
+    </div>
+
+    <div className="rounded-xl bg-amber-50 p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-slate-500">
+          Quiz Average
+        </p>
+
+        <Trophy
+          size={20}
+          className="text-amber-600"
+        />
+      </div>
+
+      <p className="mt-2 text-2xl font-bold text-slate-900">
+        {formatPercentage(
+          stats.quiz_average,
+        )}
+      </p>
+
+      <p className="mt-1 text-xs text-slate-500">
+        {stats.total_quiz_attempts} total{" "}
+        {stats.total_quiz_attempts === 1
+          ? "attempt"
+          : "attempts"}
+      </p>
+    </div>
+
+    <div className="rounded-xl bg-cyan-50 p-4">
+      <p className="text-sm text-slate-500">
+        Logbook Entries
+      </p>
+
+      <p className="mt-2 text-2xl font-bold text-slate-900">
+        {stats.logbook_entries}
+      </p>
+
+      <p className="mt-1 text-xs text-slate-500">
+        {stats.logbook_hours} logged hours
+      </p>
+    </div>
+
+    <div className="rounded-xl bg-orange-50 p-4">
+      <p className="text-sm text-slate-500">
+        Assignments
+      </p>
+
+      <p className="mt-2 text-2xl font-bold text-slate-900">
+        {stats.assignments_completed}
+        <span className="text-base font-medium text-slate-400">
+          /{stats.assignments_total}
+        </span>
+      </p>
+
+      <p className="mt-1 text-xs text-orange-600">
+        {stats.assignments_total === 0
+          ? "Not Required"
+          : `${formatPercentage(
+              stats.assignment_progress,
+            )} complete`}
+      </p>
+    </div>
+  </div>
+</div>
 
         <div className="card">
           <h2 className="text-lg font-bold text-slate-900">
@@ -628,6 +707,299 @@ export default function StudentDashboardPage() {
           </div>
         </div>
       </section>
+
+<section className="card">
+  <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+    <div>
+      <p className="text-sm font-semibold text-blue-600">
+        Internship Completion
+      </p>
+
+      <h2 className="mt-1 text-xl font-bold text-slate-900">
+        {eligibility.eligible
+          ? "Internship requirements completed"
+          : "Complete the remaining requirements"}
+      </h2>
+
+      <p className="mt-1 text-sm text-slate-500">
+        Complete all required activities to become
+        eligible for your internship certificate.
+      </p>
+    </div>
+
+    <span
+      className={`inline-flex w-fit rounded-full px-4 py-2 text-sm font-semibold ${
+        eligibility.eligible
+          ? "bg-green-100 text-green-700"
+          : "bg-amber-100 text-amber-700"
+      }`}
+    >
+      {eligibility.eligible
+        ? "Certificate Eligible"
+        : "In Progress"}
+    </span>
+  </div>
+
+  <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    {/* Chapters */}
+    <div
+      className={`rounded-xl border p-4 ${
+        eligibility.checks.chapters_completed
+          ? "border-green-200 bg-green-50"
+          : "border-slate-200 bg-slate-50"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        {eligibility.checks.chapters_completed ? (
+          <CheckCircle2
+            size={19}
+            className="text-green-600"
+          />
+        ) : (
+          <Clock3
+            size={19}
+            className="text-slate-400"
+          />
+        )}
+
+        <p className="font-semibold">
+          Chapters
+        </p>
+      </div>
+
+      <p className="mt-3 text-xl font-bold">
+        {eligibility.progress.chapters.completed}
+        <span className="text-sm font-medium text-slate-400">
+          /{eligibility.progress.chapters.total}
+        </span>
+      </p>
+
+      <p className="mt-1 text-xs text-slate-500">
+        {formatPercentage(
+          eligibility.progress.chapters.percentage,
+        )} complete
+      </p>
+    </div>
+
+    {/* Quizzes */}
+    <div
+      className={`rounded-xl border p-4 ${
+        eligibility.checks.quizzes_passed
+          ? "border-green-200 bg-green-50"
+          : "border-slate-200 bg-slate-50"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        {eligibility.checks.quizzes_passed ? (
+          <CheckCircle2
+            size={19}
+            className="text-green-600"
+          />
+        ) : (
+          <Clock3
+            size={19}
+            className="text-slate-400"
+          />
+        )}
+
+        <p className="font-semibold">
+          Quizzes
+        </p>
+      </div>
+
+      <p className="mt-3 text-xl font-bold">
+        {eligibility.progress.quizzes.passed}
+        <span className="text-sm font-medium text-slate-400">
+          /{eligibility.progress.quizzes.total}
+        </span>
+      </p>
+
+      <p className="mt-1 text-xs text-slate-500">
+        {formatPercentage(
+          eligibility.progress.quizzes.percentage,
+        )} passed
+      </p>
+    </div>
+
+    {/* Assignments */}
+    <div
+      className={`rounded-xl border p-4 ${
+        eligibility.checks.assignments_completed
+          ? "border-green-200 bg-green-50"
+          : "border-slate-200 bg-slate-50"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        {eligibility.checks.assignments_completed ? (
+          <CheckCircle2
+            size={19}
+            className="text-green-600"
+          />
+        ) : (
+          <Clock3
+            size={19}
+            className="text-slate-400"
+          />
+        )}
+
+        <p className="font-semibold">
+          Assignments
+        </p>
+      </div>
+
+      <p className="mt-3 text-sm font-semibold text-slate-700">
+        {eligibility.progress.assignments.total === 0
+          ? "Not Required"
+          : `${eligibility.progress.assignments.approved}/${eligibility.progress.assignments.total} Approved`}
+      </p>
+    </div>
+
+    {/* Learning Hours */}
+<div
+  className={`rounded-xl border p-4 ${
+    eligibility.checks.required_hours_completed
+      ? "border-green-200 bg-green-50"
+      : "border-slate-200 bg-slate-50"
+  }`}
+>
+  <div className="flex items-center gap-2">
+    {eligibility.checks.required_hours_completed ? (
+      <CheckCircle2
+        size={19}
+        className="text-green-600"
+      />
+    ) : (
+      <Clock3
+        size={19}
+        className="text-slate-400"
+      />
+    )}
+
+    <p className="font-semibold">
+      Learning Hours
+    </p>
+  </div>
+
+  <p className="mt-3 text-xl font-bold">
+    {eligibility.progress.learning_hours.completed}
+
+    <span className="text-sm font-medium text-slate-400">
+      /{eligibility.progress.learning_hours.required}
+    </span>
+  </p>
+
+  <p className="mt-1 text-xs text-slate-500">
+    {eligibility.progress.learning_hours.remaining} hours remaining
+  </p>
+</div>
+
+{/* Attendance */}
+<div
+  className={`rounded-xl border p-4 ${
+    eligibility.checks.attendance_completed
+      ? "border-green-200 bg-green-50"
+      : "border-slate-200 bg-slate-50"
+  }`}
+>
+  <div className="flex items-center gap-2">
+    {eligibility.checks.attendance_completed ? (
+      <CheckCircle2
+        size={19}
+        className="text-green-600"
+      />
+    ) : (
+      <Clock3
+        size={19}
+        className="text-slate-400"
+      />
+    )}
+
+    <p className="font-semibold">
+      Attendance
+    </p>
+  </div>
+
+  <p className="mt-3 text-xl font-bold">
+    {formatPercentage(
+      eligibility.progress.attendance.percentage,
+    )}
+  </p>
+
+  <p className="mt-1 text-xs text-slate-500">
+    Minimum{" "}
+    {formatPercentage(
+      eligibility.progress.attendance.minimum_required,
+    )} required
+  </p>
+</div>
+
+    {/* Live Project */}
+    <div
+      className={`rounded-xl border p-4 ${
+        eligibility.checks.project_approved
+          ? "border-green-200 bg-green-50"
+          : "border-slate-200 bg-slate-50"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        {eligibility.checks.project_approved ? (
+          <CheckCircle2
+            size={19}
+            className="text-green-600"
+          />
+        ) : (
+          <Clock3
+            size={19}
+            className="text-slate-400"
+          />
+        )}
+
+        <p className="font-semibold">
+          Live Project
+        </p>
+      </div>
+
+      <p className="mt-3 text-sm font-medium text-slate-600">
+        {eligibility.checks.project_approved
+          ? "Approved"
+          : "Pending"}
+      </p>
+    </div>
+
+    {/* Report */}
+    <div
+      className={`rounded-xl border p-4 ${
+        eligibility.checks.report_approved
+          ? "border-green-200 bg-green-50"
+          : "border-slate-200 bg-slate-50"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        {eligibility.checks.report_approved ? (
+          <CheckCircle2
+            size={19}
+            className="text-green-600"
+          />
+        ) : (
+          <Clock3
+            size={19}
+            className="text-slate-400"
+          />
+        )}
+
+        <p className="font-semibold">
+          Internship Report
+        </p>
+      </div>
+
+      <p className="mt-3 text-sm font-medium text-slate-600">
+        {eligibility.checks.report_approved
+          ? "Approved"
+          : "Pending"}
+      </p>
+    </div>
+  </div>
+</section>
 
       <section className="card">
         <h2 className="text-lg font-bold text-slate-900">

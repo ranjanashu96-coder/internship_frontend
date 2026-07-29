@@ -10,11 +10,11 @@ import {
 } from "react";
 import {
   BookOpen,
+  CheckCircle2,
   ExternalLink,
   FileQuestion,
   FileUp,
   Layers3,
-  Link2,
   Loader2,
   Pencil,
   Plus,
@@ -29,12 +29,17 @@ import {
   adminService,
   type AdminAssignment,
   type AdminChapter,
+  type AdminChapterResource,
   type AdminDomain,
   type AdminModule,
+  type AdminQuiz,
   type AdminSector,
-  type ChapterContentType,
-  type CreateChapterPayload,
+  type ChapterResourceType,
+  type CreateChapterResourcePayload,
+  type CreateQuizPayload,
   type LearningListParams,
+  type QuizQuestion,
+  type QuizStatus,
 } from "@/lib/services";
 
 type Tab = "sectors" | "domains" | "modules" | "chapters" | "assignments";
@@ -53,8 +58,6 @@ type FormState = {
   module_id: string;
   chapter_number: string;
   chapter_name: string;
-  content_type: ChapterContentType;
-  content_url: string;
   chapter_id: string;
   question_text: string;
 };
@@ -72,8 +75,6 @@ const emptyForm: FormState = {
   module_id: "",
   chapter_number: "",
   chapter_name: "",
-  content_type: "pdf",
-  content_url: "",
   chapter_id: "",
   question_text: "",
 };
@@ -86,18 +87,87 @@ const tabs: Array<{ key: Tab; label: string; icon: ElementType }> = [
   { key: "assignments", label: "Assignments", icon: FileQuestion },
 ];
 
-const contentLabels: Record<ChapterContentType, string> = {
-  video: "Video",
-  pdf: "PDF",
-  text: "Text",
-  link: "Link",
+type ResourceFormState = {
+  title: string;
+  resource_type: ChapterResourceType;
+  external_url: string;
+  text_content: string;
+  is_downloadable: boolean;
+  is_primary: boolean;
+  status: "active" | "inactive";
 };
 
-const contentAccept: Record<Exclude<ChapterContentType, "link">, string> = {
-  video: "video/mp4,video/webm,video/quicktime",
-  pdf: "application/pdf",
-  text: "text/plain",
+const emptyResourceForm: ResourceFormState = {
+  title: "",
+  resource_type: "video",
+  external_url: "",
+  text_content: "",
+  is_downloadable: true,
+  is_primary: false,
+  status: "active",
 };
+
+type QuizFormState = {
+  title: string;
+  description: string;
+  passing_score: string;
+  attempts_allowed: string;
+  time_limit_minutes: string;
+  randomize_questions: boolean;
+  show_result_immediately: boolean;
+  status: QuizStatus;
+  questions: QuizQuestion[];
+};
+
+const createId = (
+  prefix: string,
+) => {
+  return `${prefix}-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 9)}`;
+};
+
+const createEmptyQuestion =
+  (): QuizQuestion => {
+    const firstOptionId =
+      createId("option");
+
+    const secondOptionId =
+      createId("option");
+
+    return {
+      id: createId("question"),
+      question: "",
+      options: [
+        {
+          id: firstOptionId,
+          text: "",
+        },
+        {
+          id: secondOptionId,
+          text: "",
+        },
+      ],
+      correct_option_id: "",
+      marks: 1,
+      explanation: "",
+    };
+  };
+
+const createEmptyQuizForm =
+  (): QuizFormState => ({
+    title: "",
+    description: "",
+    passing_score: "60",
+    attempts_allowed: "3",
+    time_limit_minutes: "",
+    randomize_questions: false,
+    show_result_immediately: true,
+    status: "draft",
+    questions: [
+      createEmptyQuestion(),
+    ],
+  });
 
 const errorMessage = (error: unknown) => {
   const value = error as {
@@ -165,8 +235,49 @@ export default function AdminLearningPage() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<RecordItem | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
-  const [chapterFile, setChapterFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const [resourceModal, setResourceModal] = useState(false);
+  const [selectedChapter, setSelectedChapter] = useState<AdminChapter | null>(null);
+  const [resources, setResources] = useState<AdminChapterResource[]>([]);
+  const [resourceForm, setResourceForm] =
+    useState<ResourceFormState>(emptyResourceForm);
+  const [resourceFile, setResourceFile] = useState<File | null>(null);
+  const [resourceLoading, setResourceLoading] = useState(false);
+  const [resourceSaving, setResourceSaving] = useState(false);
+  const [
+  quizModal,
+  setQuizModal,
+] = useState(false);
+
+const [
+  quiz,
+  setQuiz,
+] = useState<AdminQuiz | null>(
+  null,
+);
+
+const [
+  quizForm,
+  setQuizForm,
+] = useState<QuizFormState>(
+  createEmptyQuizForm(),
+);
+
+const [
+  quizLoading,
+  setQuizLoading,
+] = useState(false);
+
+const [
+  quizSaving,
+  setQuizSaving,
+] = useState(false);
+
+const [
+  quizDeleting,
+  setQuizDeleting,
+] = useState(false);
 
   const title = useMemo(
     () => tabs.find((item) => item.key === tab)?.label || "Learning Setup",
@@ -236,10 +347,6 @@ export default function AdminLearningPage() {
         params.module_id = chapterModuleFilter;
       }
 
-      if (tab === "chapters" && secondaryFilter) {
-        params.content_type = secondaryFilter as ChapterContentType;
-      }
-
       if (tab === "assignments" && filterId) params.chapter_id = filterId;
 
       const response =
@@ -292,7 +399,6 @@ export default function AdminLearningPage() {
     setSecondaryFilter("");
     setChapterDomainFilter("");
     setChapterModuleFilter("");
-    setChapterFile(null);
     setEditing(null);
     setModal(false);
     setForm(emptyForm);
@@ -301,13 +407,11 @@ export default function AdminLearningPage() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
-    setChapterFile(null);
     setModal(true);
   };
 
   const openEdit = (row: RecordItem) => {
     setEditing(row);
-    setChapterFile(null);
 
     if (tab === "sectors") {
       const value = row as AdminSector;
@@ -353,8 +457,6 @@ export default function AdminLearningPage() {
         module_id: String(value.module_id),
         chapter_number: String(value.chapter_number),
         chapter_name: value.chapter_name,
-        content_type: value.content_type,
-        content_url: value.content_url,
       });
     }
 
@@ -383,7 +485,9 @@ export default function AdminLearningPage() {
     }
     if (!chapterName) throw new Error("Chapter name is required");
 
-    const selectedModule = modules.find((module) => Number(module.id) === moduleId);
+    const selectedModule = modules.find(
+      (module) => Number(module.id) === moduleId,
+    );
 
     if (!selectedModule) throw new Error("Selected module was not found");
 
@@ -391,41 +495,11 @@ export default function AdminLearningPage() {
       throw new Error("Selected module does not belong to the selected domain");
     }
 
-    const isLink = form.content_type === "link";
-    const existingChapter = editing as AdminChapter | null;
-
-    if (isLink) {
-      const contentUrl = form.content_url.trim();
-
-      if (!contentUrl) throw new Error("Content link is required");
-
-      try {
-        const parsedUrl = new URL(contentUrl);
-        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-          throw new Error("Invalid protocol");
-        }
-      } catch {
-        throw new Error("Enter a valid HTTP or HTTPS link");
-      }
-    } else {
-      const fileRequired =
-        !editing ||
-        existingChapter?.content_type === "link" ||
-        existingChapter?.content_type !== form.content_type;
-
-      if (fileRequired && !chapterFile) {
-        throw new Error(`${contentLabels[form.content_type]} file is required`);
-      }
-    }
-
-    const payload: CreateChapterPayload = {
+    const payload = {
       domain_id: domainId,
       module_id: moduleId,
       chapter_number: chapterNumber,
       chapter_name: chapterName,
-      content_type: form.content_type,
-      file: isLink ? undefined : chapterFile || undefined,
-      content_url: isLink ? form.content_url.trim() : undefined,
     };
 
     if (editing) {
@@ -503,8 +577,7 @@ export default function AdminLearningPage() {
       setModal(false);
       setEditing(null);
       setForm(emptyForm);
-      setChapterFile(null);
-
+  
       await Promise.all([loadRows(), loadReferences()]);
     } catch (error) {
       toast.error(errorMessage(error));
@@ -512,6 +585,696 @@ export default function AdminLearningPage() {
       setSaving(false);
     }
   };
+
+  const loadChapterResources = async (chapterId: number) => {
+    setResourceLoading(true);
+
+    try {
+      const response = await adminService.chapterResources(chapterId);
+      setResources(response.data.data.resources || []);
+    } catch (error) {
+      toast.error(errorMessage(error));
+      setResources([]);
+    } finally {
+      setResourceLoading(false);
+    }
+  };
+
+  const openResourceManager = async (chapter: AdminChapter) => {
+    setSelectedChapter(chapter);
+    setResourceForm(emptyResourceForm);
+    setResourceFile(null);
+    setResourceModal(true);
+    await loadChapterResources(chapter.id);
+  };
+
+  const saveResource = async () => {
+    if (!selectedChapter) {
+      toast.error("Chapter was not selected");
+      return;
+    }
+
+    const title = resourceForm.title.trim();
+    if (!title) {
+      toast.error("Resource title is required");
+      return;
+    }
+
+    const isLink = resourceForm.resource_type === "link";
+    const isText = resourceForm.resource_type === "text";
+
+    if (isLink && !resourceForm.external_url.trim()) {
+      toast.error("External link is required");
+      return;
+    }
+
+    if (isText && !resourceForm.text_content.trim()) {
+      toast.error("Text content is required");
+      return;
+    }
+
+    if (!isLink && !isText && !resourceFile) {
+      toast.error("Please select a file");
+      return;
+    }
+
+    setResourceSaving(true);
+
+    try {
+      const payload: CreateChapterResourcePayload = {
+        title,
+        resource_type: resourceForm.resource_type,
+        file: !isLink && !isText ? resourceFile || undefined : undefined,
+        external_url: isLink
+          ? resourceForm.external_url.trim()
+          : undefined,
+        text_content: isText
+          ? resourceForm.text_content.trim()
+          : undefined,
+        is_downloadable: resourceForm.is_downloadable,
+        is_primary: resourceForm.is_primary,
+        status: resourceForm.status,
+      };
+
+      await adminService.createChapterResource(selectedChapter.id, payload);
+      toast.success("Resource added successfully");
+
+      setResourceForm(emptyResourceForm);
+      setResourceFile(null);
+      await loadChapterResources(selectedChapter.id);
+    } catch (error) {
+      toast.error(errorMessage(error));
+    } finally {
+      setResourceSaving(false);
+    }
+  };
+
+  const removeResource = async (resource: AdminChapterResource) => {
+    if (!window.confirm(`Delete "${resource.title}"?`)) return;
+
+    try {
+      await adminService.deleteChapterResource(resource.id);
+      toast.success("Resource deleted successfully");
+
+      if (selectedChapter) {
+        await loadChapterResources(selectedChapter.id);
+      }
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  };
+
+  const resetQuizManager = () => {
+  setQuiz(null);
+  setQuizForm(
+    createEmptyQuizForm(),
+  );
+};
+
+const loadChapterQuiz = async (
+  chapterId: number,
+) => {
+  setQuizLoading(true);
+
+  try {
+    const response =
+      await adminService.quizzes({
+        chapter_id: chapterId,
+        page: 1,
+        limit: 1,
+      });
+
+    const existingQuiz =
+      response.data.data.items?.[0] ||
+      null;
+
+    setQuiz(existingQuiz);
+
+    if (!existingQuiz) {
+      setQuizForm(
+        createEmptyQuizForm(),
+      );
+
+      return;
+    }
+
+    const questions =
+      Array.isArray(
+        existingQuiz.questions_json,
+      )
+        ? existingQuiz.questions_json
+        : [];
+
+    setQuizForm({
+      title:
+        existingQuiz.title || "",
+      description:
+        existingQuiz.description || "",
+      passing_score: String(
+        existingQuiz.passing_score ??
+          60,
+      ),
+      attempts_allowed: String(
+        existingQuiz.attempts_allowed ??
+          3,
+      ),
+      time_limit_minutes:
+        existingQuiz.time_limit_minutes
+          ? String(
+              existingQuiz.time_limit_minutes,
+            )
+          : "",
+      randomize_questions:
+        Boolean(
+          existingQuiz.randomize_questions,
+        ),
+      show_result_immediately:
+        Boolean(
+          existingQuiz.show_result_immediately,
+        ),
+      status:
+        existingQuiz.status ||
+        "draft",
+      questions:
+        questions.length > 0
+          ? questions.map(
+              (question) => ({
+                ...question,
+                explanation:
+                  question.explanation ||
+                  "",
+                marks: Number(
+                  question.marks || 1,
+                ),
+                options:
+                  Array.isArray(
+                    question.options,
+                  )
+                    ? question.options
+                    : [],
+              }),
+            )
+          : [
+              createEmptyQuestion(),
+            ],
+    });
+  } catch (error) {
+    toast.error(
+      errorMessage(error),
+    );
+
+    resetQuizManager();
+  } finally {
+    setQuizLoading(false);
+  }
+};
+
+const openQuizManager = async (
+  chapter: AdminChapter,
+) => {
+  setSelectedChapter(chapter);
+  resetQuizManager();
+  setQuizModal(true);
+
+  await loadChapterQuiz(
+    chapter.id,
+  );
+};
+
+const updateQuizField = <
+  K extends keyof QuizFormState,
+>(
+  key: K,
+  value: QuizFormState[K],
+) => {
+  setQuizForm((current) => ({
+    ...current,
+    [key]: value,
+  }));
+};
+
+const updateQuestion = (
+  questionIndex: number,
+  changes: Partial<QuizQuestion>,
+) => {
+  setQuizForm((current) => ({
+    ...current,
+    questions:
+      current.questions.map(
+        (
+          question,
+          currentIndex,
+        ) =>
+          currentIndex ===
+          questionIndex
+            ? {
+                ...question,
+                ...changes,
+              }
+            : question,
+      ),
+  }));
+};
+
+const addQuestion = () => {
+  setQuizForm((current) => ({
+    ...current,
+    questions: [
+      ...current.questions,
+      createEmptyQuestion(),
+    ],
+  }));
+};
+
+const removeQuestion = (
+  questionIndex: number,
+) => {
+  setQuizForm((current) => {
+    if (
+      current.questions.length <=
+      1
+    ) {
+      toast.error(
+        "At least one question is required",
+      );
+
+      return current;
+    }
+
+    return {
+      ...current,
+      questions:
+        current.questions.filter(
+          (_, index) =>
+            index !==
+            questionIndex,
+        ),
+    };
+  });
+};
+
+const addQuestionOption = (
+  questionIndex: number,
+) => {
+  setQuizForm((current) => ({
+    ...current,
+    questions:
+      current.questions.map(
+        (
+          question,
+          currentIndex,
+        ) =>
+          currentIndex ===
+          questionIndex
+            ? {
+                ...question,
+                options: [
+                  ...question.options,
+                  {
+                    id: createId(
+                      "option",
+                    ),
+                    text: "",
+                  },
+                ],
+              }
+            : question,
+      ),
+  }));
+};
+
+const updateQuestionOption = (
+  questionIndex: number,
+  optionIndex: number,
+  text: string,
+) => {
+  setQuizForm((current) => ({
+    ...current,
+    questions:
+      current.questions.map(
+        (
+          question,
+          currentQuestionIndex,
+        ) => {
+          if (
+            currentQuestionIndex !==
+            questionIndex
+          ) {
+            return question;
+          }
+
+          return {
+            ...question,
+            options:
+              question.options.map(
+                (
+                  option,
+                  currentOptionIndex,
+                ) =>
+                  currentOptionIndex ===
+                  optionIndex
+                    ? {
+                        ...option,
+                        text,
+                      }
+                    : option,
+              ),
+          };
+        },
+      ),
+  }));
+};
+
+const removeQuestionOption = (
+  questionIndex: number,
+  optionIndex: number,
+) => {
+  setQuizForm((current) => ({
+    ...current,
+    questions:
+      current.questions.map(
+        (
+          question,
+          currentQuestionIndex,
+        ) => {
+          if (
+            currentQuestionIndex !==
+            questionIndex
+          ) {
+            return question;
+          }
+
+          if (
+            question.options.length <=
+            2
+          ) {
+            toast.error(
+              "Each question must have at least two options",
+            );
+
+            return question;
+          }
+
+          const removedOption =
+            question.options[
+              optionIndex
+            ];
+
+          const options =
+            question.options.filter(
+              (_, index) =>
+                index !== optionIndex,
+            );
+
+          return {
+            ...question,
+            options,
+            correct_option_id:
+              question.correct_option_id ===
+              removedOption.id
+                ? ""
+                : question.correct_option_id,
+          };
+        },
+      ),
+  }));
+};
+
+const validateQuizForm = () => {
+  if (!selectedChapter) {
+    throw new Error(
+      "Chapter was not selected",
+    );
+  }
+
+  const title =
+    quizForm.title.trim();
+
+  if (!title) {
+    throw new Error(
+      "Quiz title is required",
+    );
+  }
+
+  const passingScore =
+    Number(
+      quizForm.passing_score,
+    );
+
+  if (
+    !Number.isFinite(
+      passingScore,
+    ) ||
+    passingScore < 0 ||
+    passingScore > 100
+  ) {
+    throw new Error(
+      "Passing score must be between 0 and 100",
+    );
+  }
+
+  const attemptsAllowed =
+    Number(
+      quizForm.attempts_allowed,
+    );
+
+  if (
+    !Number.isInteger(
+      attemptsAllowed,
+    ) ||
+    attemptsAllowed < 1
+  ) {
+    throw new Error(
+      "Attempts allowed must be at least 1",
+    );
+  }
+
+  const timeLimit =
+    quizForm.time_limit_minutes.trim()
+      ? Number(
+          quizForm.time_limit_minutes,
+        )
+      : null;
+
+  if (
+    timeLimit !== null &&
+    (!Number.isInteger(
+      timeLimit,
+    ) ||
+      timeLimit < 1)
+  ) {
+    throw new Error(
+      "Time limit must be at least 1 minute",
+    );
+  }
+
+  if (
+    quizForm.questions.length ===
+    0
+  ) {
+    throw new Error(
+      "At least one question is required",
+    );
+  }
+
+  const normalizedQuestions =
+    quizForm.questions.map(
+      (
+        question,
+        questionIndex,
+      ) => {
+        const questionText =
+          question.question.trim();
+
+        if (!questionText) {
+          throw new Error(
+            `Question ${questionIndex + 1} text is required`,
+          );
+        }
+
+        if (
+          question.options.length <
+          2
+        ) {
+          throw new Error(
+            `Question ${questionIndex + 1} must have at least two options`,
+          );
+        }
+
+        const options =
+          question.options.map(
+            (
+              option,
+              optionIndex,
+            ) => {
+              const optionText =
+                option.text.trim();
+
+              if (!optionText) {
+                throw new Error(
+                  `Option ${optionIndex + 1} of question ${questionIndex + 1} is required`,
+                );
+              }
+
+              return {
+                id: option.id,
+                text: optionText,
+              };
+            },
+          );
+
+        if (
+          !question.correct_option_id
+        ) {
+          throw new Error(
+            `Select the correct answer for question ${questionIndex + 1}`,
+          );
+        }
+
+        const correctOptionExists =
+          options.some(
+            (option) =>
+              option.id ===
+              question.correct_option_id,
+          );
+
+        if (
+          !correctOptionExists
+        ) {
+          throw new Error(
+            `Correct answer for question ${questionIndex + 1} is invalid`,
+          );
+        }
+
+        const marks = Number(
+          question.marks,
+        );
+
+        if (
+          !Number.isFinite(marks) ||
+          marks <= 0
+        ) {
+          throw new Error(
+            `Marks for question ${questionIndex + 1} must be greater than 0`,
+          );
+        }
+
+        return {
+          id: question.id,
+          question:
+            questionText,
+          options,
+          correct_option_id:
+            question.correct_option_id,
+          marks,
+          explanation:
+            question.explanation?.trim() ||
+            null,
+        };
+      },
+    );
+
+  const payload:
+    CreateQuizPayload = {
+    chapter_id:
+      selectedChapter.id,
+    title,
+    description:
+      quizForm.description.trim() ||
+      null,
+    passing_score:
+      passingScore,
+    attempts_allowed:
+      attemptsAllowed,
+    time_limit_minutes:
+      timeLimit,
+    randomize_questions:
+      quizForm.randomize_questions,
+    show_result_immediately:
+      quizForm.show_result_immediately,
+    status:
+      quizForm.status,
+    questions:
+      normalizedQuestions,
+  };
+
+  return payload;
+};
+
+const saveQuiz = async () => {
+  setQuizSaving(true);
+
+  try {
+    const payload =
+      validateQuizForm();
+
+    const response = quiz
+      ? await adminService.updateQuiz(
+          quiz.id,
+          payload,
+        )
+      : await adminService.createQuiz(
+          payload,
+        );
+
+    setQuiz(
+      response.data.data,
+    );
+
+    toast.success(
+      quiz
+        ? "Quiz updated successfully"
+        : "Quiz created successfully",
+    );
+
+    if (selectedChapter) {
+      await loadChapterQuiz(
+        selectedChapter.id,
+      );
+    }
+  } catch (error) {
+    toast.error(
+      errorMessage(error),
+    );
+  } finally {
+    setQuizSaving(false);
+  }
+};
+
+const deleteQuiz = async () => {
+  if (!quiz) {
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      `Delete "${quiz.title}"?`,
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  setQuizDeleting(true);
+
+  try {
+    await adminService.deleteQuiz(
+      quiz.id,
+    );
+
+    toast.success(
+      "Quiz deleted successfully",
+    );
+
+    resetQuizManager();
+  } catch (error) {
+    toast.error(
+      errorMessage(error),
+    );
+  } finally {
+    setQuizDeleting(false);
+  }
+};
 
   const remove = async (row: RecordItem) => {
     if (!window.confirm("Delete this record?")) return;
@@ -583,21 +1346,6 @@ export default function AdminLearningPage() {
                 Module {module.module_number} - {module.module_name}
               </option>
             ))}
-          </select>
-
-          <select
-            value={secondaryFilter}
-            onChange={(event) => {
-              setSecondaryFilter(event.target.value);
-              setPage(1);
-            }}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm"
-          >
-            <option value="">All content types</option>
-            <option value="video">Video</option>
-            <option value="pdf">PDF</option>
-            <option value="text">Text</option>
-            <option value="link">Link</option>
           </select>
         </>
       );
@@ -676,18 +1424,37 @@ export default function AdminLearningPage() {
           <td className="px-4 py-4">{value.chapter_number}</td>
           <td className="px-4 py-4">{domain?.domain_name || "-"}</td>
           <td className="px-4 py-4">{module?.module_name || "-"}</td>
-          <td className="px-4 py-4 capitalize">{value.content_type}</td>
-          <td className="max-w-64 px-4 py-4">
-            <a
-              href={resolveContentUrl(value.content_url)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex max-w-full items-center gap-2 text-blue-600 hover:underline"
-            >
-              <ExternalLink className="h-4 w-4 shrink-0" />
-              <span className="truncate">Open content</span>
-            </a>
-          </td>
+         <td className="px-4 py-4">
+  <div className="flex flex-wrap gap-2">
+    <button
+      type="button"
+      onClick={() =>
+        void openResourceManager(
+          value,
+        )
+      }
+      className="inline-flex items-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50"
+    >
+      <FileUp size={16} />
+      Manage Resources
+    </button>
+
+    <button
+      type="button"
+      onClick={() =>
+        void openQuizManager(
+          value,
+        )
+      }
+      className="inline-flex items-center gap-2 rounded-lg border border-violet-200 px-3 py-2 text-sm font-semibold text-violet-600 hover:bg-violet-50"
+    >
+      <FileQuestion
+        size={16}
+      />
+      Manage Quiz
+    </button>
+  </div>
+</td>
         </>
       );
     }
@@ -711,7 +1478,7 @@ export default function AdminLearningPage() {
         : tab === "modules"
           ? ["Module", "Number", "Domain"]
           : tab === "chapters"
-            ? ["Chapter", "Number", "Domain", "Module", "Type", "Content"]
+            ? ["Chapter", "Number", "Domain", "Module",  "Learning Content",]
             : ["Question", "Chapter"];
 
   return (
@@ -778,7 +1545,7 @@ export default function AdminLearningPage() {
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
                 {headerCells.map((header) => (
-                  <th key={header} className="px-4 py-3">
+                  <th key={header} className="px-4 py-3 text-center">
                     {header}
                   </th>
                 ))}
@@ -872,8 +1639,7 @@ export default function AdminLearningPage() {
                 type="button"
                 onClick={() => {
                   setModal(false);
-                  setChapterFile(null);
-                }}
+                              }}
                 className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
               >
                 <X size={19} />
@@ -1050,105 +1816,22 @@ export default function AdminLearningPage() {
                       />
                     </FieldLabel>
 
-                    <FieldLabel label="Content Type" required>
-                      <select
-                        value={form.content_type}
-                        onChange={(event) => {
-                          const nextType = event.target.value as ChapterContentType;
-                          setForm((current) => ({
-                            ...current,
-                            content_type: nextType,
-                            content_url:
-                              current.content_type === nextType ? current.content_url : "",
-                          }));
-                          setChapterFile(null);
-                        }}
-                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                      >
-                        <option value="video">Video File</option>
-                        <option value="pdf">PDF File</option>
-                        <option value="text">Text File</option>
-                        <option value="link">External Link</option>
-                      </select>
+                    <FieldLabel label="Chapter Name" required>
+                      <Input
+                        value={form.chapter_name}
+                        onChange={(event) =>
+                          updateForm("chapter_name", event.target.value)
+                        }
+                        placeholder="Enter chapter name"
+                      />
                     </FieldLabel>
                   </div>
 
-                  <FieldLabel label="Chapter Name" required>
-                    <Input
-                      value={form.chapter_name}
-                      onChange={(event) => updateForm("chapter_name", event.target.value)}
-                      placeholder="Enter chapter name"
-                    />
-                  </FieldLabel>
-
-                  {form.content_type === "link" ? (
-                    <FieldLabel label="Content Link" required>
-                      <div className="relative">
-                        <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                        <Input
-                          type="url"
-                          value={form.content_url}
-                          onChange={(event) =>
-                            updateForm("content_url", event.target.value)
-                          }
-                          className="pl-10"
-                          placeholder="https://example.com/content"
-                        />
-                      </div>
-                    </FieldLabel>
-                  ) : (
-                    <FieldLabel
-                      label={`Upload ${contentLabels[form.content_type]} File`}
-                      required={!editing}
-                    >
-                      <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-5 transition hover:border-blue-400 hover:bg-blue-50/40">
-                        <input
-                          type="file"
-                          className="sr-only"
-                          accept={
-                            contentAccept[
-                              form.content_type as Exclude<ChapterContentType, "link">
-                            ]
-                          }
-                          onChange={(event) =>
-                            setChapterFile(event.target.files?.[0] || null)
-                          }
-                        />
-
-                        <div className="flex items-center gap-4">
-                          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-blue-100 text-blue-600">
-                            <FileUp className="h-5 w-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate font-semibold text-slate-800">
-                              {chapterFile ? chapterFile.name : "Choose file"}
-                            </p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {editing && !chapterFile
-                                ? "Leave empty to keep the existing file"
-                                : form.content_type === "pdf"
-                                  ? "Only PDF files are allowed"
-                                  : form.content_type === "video"
-                                    ? "MP4, WebM or MOV files are allowed"
-                                    : "Only TXT files are allowed"}
-                            </p>
-                          </div>
-                        </div>
-                      </label>
-
-                      {editing && form.content_url && !chapterFile && (
-                        <a
-                          href={resolveContentUrl(form.content_url)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:underline"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          Open current content
-                        </a>
-                      )}
-                    </FieldLabel>
-                  )}
+                  <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
+                    Pehle chapter save karein. Save hone ke baad table me
+                    <strong> Manage Resources</strong> se video, PDF, notes,
+                    PPT, ZIP aur links add karein.
+                  </div>
                 </div>
               )}
 
@@ -1186,8 +1869,7 @@ export default function AdminLearningPage() {
                   type="button"
                   onClick={() => {
                     setModal(false);
-                    setChapterFile(null);
-                  }}
+                                  }}
                   className="rounded-lg border px-4 py-2 text-sm font-semibold"
                 >
                   Cancel
@@ -1209,6 +1891,878 @@ export default function AdminLearningPage() {
           </div>
         </div>
       )}
+      {resourceModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b px-6 py-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  Chapter Resources
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {selectedChapter?.chapter_name}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setResourceModal(false);
+                  setSelectedChapter(null);
+                  setResources([]);
+                  setResourceForm(emptyResourceForm);
+                  setResourceFile(null);
+                }}
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+              >
+                <X size={19} />
+              </button>
+            </div>
+
+            <div className="grid gap-6 p-6 lg:grid-cols-[360px_1fr]">
+              <div className="rounded-2xl border bg-slate-50 p-5">
+                <h3 className="font-bold text-slate-900">Add Resource</h3>
+
+                <div className="mt-5 space-y-4">
+                  <FieldLabel label="Resource Title" required>
+                    <Input
+                      value={resourceForm.title}
+                      onChange={(event) =>
+                        setResourceForm((current) => ({
+                          ...current,
+                          title: event.target.value,
+                        }))
+                      }
+                      placeholder="Example: Introduction video"
+                    />
+                  </FieldLabel>
+
+                  <FieldLabel label="Resource Type" required>
+                    <select
+                      value={resourceForm.resource_type}
+                      onChange={(event) => {
+                        setResourceForm((current) => ({
+                          ...current,
+                          resource_type:
+                            event.target.value as ChapterResourceType,
+                          external_url: "",
+                          text_content: "",
+                        }));
+                        setResourceFile(null);
+                      }}
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                    >
+                      <option value="video">Video</option>
+                      <option value="pdf">PDF</option>
+                      <option value="ppt">PPT</option>
+                      <option value="document">Document</option>
+                      <option value="image">Image</option>
+                      <option value="audio">Audio</option>
+                      <option value="text">Written Notes</option>
+                      <option value="link">External Link</option>
+                      <option value="zip">ZIP</option>
+                      <option value="source_code">Source Code</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </FieldLabel>
+
+                  {resourceForm.resource_type === "link" ? (
+                    <FieldLabel label="External Link" required>
+                      <Input
+                        type="url"
+                        value={resourceForm.external_url}
+                        onChange={(event) =>
+                          setResourceForm((current) => ({
+                            ...current,
+                            external_url: event.target.value,
+                          }))
+                        }
+                        placeholder="https://example.com"
+                      />
+                    </FieldLabel>
+                  ) : resourceForm.resource_type === "text" ? (
+                    <FieldLabel label="Written Notes" required>
+                      <textarea
+                        rows={8}
+                        value={resourceForm.text_content}
+                        onChange={(event) =>
+                          setResourceForm((current) => ({
+                            ...current,
+                            text_content: event.target.value,
+                          }))
+                        }
+                        placeholder="Write notes here..."
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-blue-500"
+                      />
+                    </FieldLabel>
+                  ) : (
+                    <FieldLabel label="Upload File" required>
+                      <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-slate-200 bg-white p-5 hover:border-blue-400">
+                        <input
+                          type="file"
+                          className="sr-only"
+                          onChange={(event) =>
+                            setResourceFile(event.target.files?.[0] || null)
+                          }
+                        />
+                        <div className="flex items-center gap-3">
+                          <FileUp className="h-5 w-5 text-blue-600" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold">
+                              {resourceFile ? resourceFile.name : "Choose file"}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              Select the resource file
+                            </p>
+                          </div>
+                        </div>
+                      </label>
+                    </FieldLabel>
+                  )}
+
+                  <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={resourceForm.is_downloadable}
+                      onChange={(event) =>
+                        setResourceForm((current) => ({
+                          ...current,
+                          is_downloadable: event.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4"
+                    />
+                    Student can download
+                  </label>
+
+                  <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={resourceForm.is_primary}
+                      onChange={(event) =>
+                        setResourceForm((current) => ({
+                          ...current,
+                          is_primary: event.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4"
+                    />
+                    Primary resource
+                  </label>
+
+                  <Button
+                    type="button"
+                    disabled={resourceSaving}
+                    onClick={() => void saveResource()}
+                    className="w-full"
+                  >
+                    {resourceSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Resource
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-slate-900">Saved Resources</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {resources.length} resource{resources.length === 1 ? "" : "s"}
+                </p>
+
+                {resourceLoading ? (
+                  <div className="py-16 text-center">
+                    <Loader2 className="mx-auto h-7 w-7 animate-spin text-blue-600" />
+                    <p className="mt-2 text-sm text-slate-500">
+                      Loading resources...
+                    </p>
+                  </div>
+                ) : resources.length === 0 ? (
+                  <div className="mt-4 rounded-2xl border border-dashed py-16 text-center">
+                    <FileUp className="mx-auto h-8 w-8 text-slate-400" />
+                    <p className="mt-3 font-semibold text-slate-700">
+                      No resources added
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {resources.map((resource) => {
+                      const resourceUrl = resolveContentUrl(
+                        resource.file_url || resource.external_url,
+                      );
+
+                      return (
+                        <div
+                          key={resource.id}
+                          className="flex items-center justify-between gap-4 rounded-2xl border p-4"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-slate-900">
+                              {resource.title}
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                              <span className="rounded-full bg-slate-100 px-2 py-1 uppercase">
+                                {resource.resource_type}
+                              </span>
+                              {resource.is_primary && (
+                                <span className="rounded-full bg-blue-100 px-2 py-1 text-blue-700">
+                                  Primary
+                                </span>
+                              )}
+                              {!resource.is_downloadable && (
+                                <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">
+                                  View only
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-2">
+                            {resourceUrl && (
+                              <a
+                                href={resourceUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="rounded-lg border p-2 text-blue-600 hover:bg-blue-50"
+                                title="Open resource"
+                              >
+                                <ExternalLink size={16} />
+                              </a>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => void removeResource(resource)}
+                              className="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50"
+                              title="Delete resource"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {quizModal &&
+  selectedChapter && (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4">
+      <div className="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-start justify-between border-b px-6 py-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">
+              Manage Quiz
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Chapter{" "}
+              {
+                selectedChapter.chapter_number
+              }{" "}
+              —{" "}
+              {
+                selectedChapter.chapter_name
+              }
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setQuizModal(
+                false,
+              );
+              setSelectedChapter(
+                null,
+              );
+              resetQuizManager();
+            }}
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {quizLoading ? (
+            <div className="py-20 text-center">
+              <Loader2 className="mx-auto h-7 w-7 animate-spin text-blue-600" />
+              <p className="mt-3 text-sm text-slate-500">
+                Loading quiz...
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <section className="rounded-2xl border border-slate-200 p-5">
+                <div className="mb-5 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-900">
+                      Quiz Details
+                    </h3>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      Configure quiz
+                      availability and
+                      attempt rules.
+                    </p>
+                  </div>
+
+                  {quiz && (
+                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                      Existing quiz
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FieldLabel
+                    label="Quiz Title"
+                    required
+                  >
+                    <Input
+                      value={
+                        quizForm.title
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateQuizField(
+                          "title",
+                          event.target
+                            .value,
+                        )
+                      }
+                      placeholder="Enter quiz title"
+                    />
+                  </FieldLabel>
+
+                  <FieldLabel
+                    label="Status"
+                    required
+                  >
+                    <select
+                      value={
+                        quizForm.status
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateQuizField(
+                          "status",
+                          event.target
+                            .value as QuizStatus,
+                        )
+                      }
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+                    >
+                      <option value="draft">
+                        Draft
+                      </option>
+                      <option value="active">
+                        Active
+                      </option>
+                      <option value="inactive">
+                        Inactive
+                      </option>
+                    </select>
+                  </FieldLabel>
+
+                  <div className="md:col-span-2">
+                    <FieldLabel label="Description">
+                      <textarea
+                        value={
+                          quizForm.description
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          updateQuizField(
+                            "description",
+                            event.target
+                              .value,
+                          )
+                        }
+                        rows={3}
+                        placeholder="Optional quiz description"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      />
+                    </FieldLabel>
+                  </div>
+
+                  <FieldLabel
+                    label="Passing Score (%)"
+                    required
+                  >
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.01"
+                      value={
+                        quizForm.passing_score
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateQuizField(
+                          "passing_score",
+                          event.target
+                            .value,
+                        )
+                      }
+                    />
+                  </FieldLabel>
+
+                  <FieldLabel
+                    label="Attempts Allowed"
+                    required
+                  >
+                    <Input
+                      type="number"
+                      min={1}
+                      value={
+                        quizForm.attempts_allowed
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateQuizField(
+                          "attempts_allowed",
+                          event.target
+                            .value,
+                        )
+                      }
+                    />
+                  </FieldLabel>
+
+                  <FieldLabel label="Time Limit (Minutes)">
+                    <Input
+                      type="number"
+                      min={1}
+                      value={
+                        quizForm.time_limit_minutes
+                      }
+                      onChange={(
+                        event,
+                      ) =>
+                        updateQuizField(
+                          "time_limit_minutes",
+                          event.target
+                            .value,
+                        )
+                      }
+                      placeholder="No limit"
+                    />
+                  </FieldLabel>
+
+                  <div className="space-y-3 pt-1">
+                    <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={
+                          quizForm.randomize_questions
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          updateQuizField(
+                            "randomize_questions",
+                            event.target
+                              .checked,
+                          )
+                        }
+                        className="h-4 w-4 rounded"
+                      />
+                      Randomize questions
+                    </label>
+
+                    <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={
+                          quizForm.show_result_immediately
+                        }
+                        onChange={(
+                          event,
+                        ) =>
+                          updateQuizField(
+                            "show_result_immediately",
+                            event.target
+                              .checked,
+                          )
+                        }
+                        className="h-4 w-4 rounded"
+                      />
+                      Show result
+                      immediately
+                    </label>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-slate-900">
+                      Questions
+                    </h3>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      {
+                        quizForm
+                          .questions
+                          .length
+                      }{" "}
+                      question(s),{" "}
+                      {quizForm.questions.reduce(
+                        (
+                          totalMarks,
+                          question,
+                        ) =>
+                          totalMarks +
+                          Number(
+                            question.marks ||
+                              0,
+                          ),
+                        0,
+                      )}{" "}
+                      total marks
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={
+                      addQuestion
+                    }
+                    className="gap-2"
+                  >
+                    <Plus
+                      size={16}
+                    />
+                    Add Question
+                  </Button>
+                </div>
+
+                {quizForm.questions.map(
+                  (
+                    question,
+                    questionIndex,
+                  ) => (
+                    <div
+                      key={
+                        question.id
+                      }
+                      className="rounded-2xl border border-slate-200 bg-slate-50/60 p-5"
+                    >
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
+                            {questionIndex +
+                              1}
+                          </span>
+
+                          <h4 className="font-semibold text-slate-900">
+                            Question{" "}
+                            {questionIndex +
+                              1}
+                          </h4>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeQuestion(
+                              questionIndex,
+                            )
+                          }
+                          className="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2
+                            size={16}
+                          />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        <FieldLabel
+                          label="Question Text"
+                          required
+                        >
+                          <textarea
+                            value={
+                              question.question
+                            }
+                            onChange={(
+                              event,
+                            ) =>
+                              updateQuestion(
+                                questionIndex,
+                                {
+                                  question:
+                                    event
+                                      .target
+                                      .value,
+                                },
+                              )
+                            }
+                            rows={3}
+                            placeholder="Enter question"
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                          />
+                        </FieldLabel>
+
+                        <div>
+                          <div className="mb-2 flex items-center justify-between">
+                            <p className="text-sm font-semibold text-slate-700">
+                              Options
+                              <span className="ml-1 text-red-500">
+                                *
+                              </span>
+                            </p>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                addQuestionOption(
+                                  questionIndex,
+                                )
+                              }
+                              className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+                            >
+                              + Add option
+                            </button>
+                          </div>
+
+                          <div className="space-y-3">
+                            {question.options.map(
+                              (
+                                option,
+                                optionIndex,
+                              ) => (
+                                <div
+                                  key={
+                                    option.id
+                                  }
+                                  className="flex items-center gap-3"
+                                >
+                                  <button
+                                    type="button"
+                                    title="Mark as correct answer"
+                                    onClick={() =>
+                                      updateQuestion(
+                                        questionIndex,
+                                        {
+                                          correct_option_id:
+                                            option.id,
+                                        },
+                                      )
+                                    }
+                                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${
+                                      question.correct_option_id ===
+                                      option.id
+                                        ? "border-emerald-500 bg-emerald-500 text-white"
+                                        : "border-slate-300 bg-white text-slate-400"
+                                    }`}
+                                  >
+                                    <CheckCircle2
+                                      size={
+                                        18
+                                      }
+                                    />
+                                  </button>
+
+                                  <Input
+                                    value={
+                                      option.text
+                                    }
+                                    onChange={(
+                                      event,
+                                    ) =>
+                                      updateQuestionOption(
+                                        questionIndex,
+                                        optionIndex,
+                                        event
+                                          .target
+                                          .value,
+                                      )
+                                    }
+                                    placeholder={`Option ${optionIndex + 1}`}
+                                  />
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      removeQuestionOption(
+                                        questionIndex,
+                                        optionIndex,
+                                      )
+                                    }
+                                    className="rounded-lg border border-red-200 p-2 text-red-600 hover:bg-red-50"
+                                  >
+                                    <X
+                                      size={
+                                        16
+                                      }
+                                    />
+                                  </button>
+                                </div>
+                              ),
+                            )}
+                          </div>
+
+                          <p className="mt-2 text-xs text-slate-500">
+                            Click the
+                            circle beside
+                            an option to
+                            mark it as the
+                            correct answer.
+                          </p>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <FieldLabel
+                            label="Marks"
+                            required
+                          >
+                            <Input
+                              type="number"
+                              min={0.01}
+                              step="0.01"
+                              value={
+                                question.marks
+                              }
+                              onChange={(
+                                event,
+                              ) =>
+                                updateQuestion(
+                                  questionIndex,
+                                  {
+                                    marks:
+                                      Number(
+                                        event
+                                          .target
+                                          .value,
+                                      ),
+                                  },
+                                )
+                              }
+                            />
+                          </FieldLabel>
+
+                          <div className="md:col-span-2">
+                            <FieldLabel label="Explanation">
+                              <Input
+                                value={
+                                  question.explanation ||
+                                  ""
+                                }
+                                onChange={(
+                                  event,
+                                ) =>
+                                  updateQuestion(
+                                    questionIndex,
+                                    {
+                                      explanation:
+                                        event
+                                          .target
+                                          .value,
+                                    },
+                                  )
+                                }
+                                placeholder="Explanation shown after submission"
+                              />
+                            </FieldLabel>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </section>
+            </div>
+          )}
+        </div>
+
+        {!quizLoading && (
+          <div className="flex flex-col-reverse justify-between gap-3 border-t bg-slate-50 px-6 py-4 sm:flex-row">
+            <div>
+              {quiz && (
+                <button
+                  type="button"
+                  disabled={
+                    quizDeleting ||
+                    quizSaving
+                  }
+                  onClick={() =>
+                    void deleteQuiz()
+                  }
+                  className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {quizDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2
+                      size={16}
+                    />
+                  )}
+
+                  Delete Quiz
+                </button>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setQuizModal(
+                    false,
+                  )
+                }
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+              >
+                Close
+              </button>
+
+              <Button
+                type="button"
+                disabled={
+                  quizSaving ||
+                  quizDeleting
+                }
+                onClick={() =>
+                  void saveQuiz()
+                }
+                className="gap-2"
+              >
+                {quizSaving && (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+
+                {quiz
+                  ? "Update Quiz"
+                  : "Create Quiz"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
+
     </div>
   );
 }

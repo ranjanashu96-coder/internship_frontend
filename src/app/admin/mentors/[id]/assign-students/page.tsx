@@ -88,7 +88,7 @@ const getStatusClass = (
 export default function AssignMentorStudentsPage() {
   const params =
     useParams<{
-      mentorId: string;
+      id: string;
     }>();
 
   const router =
@@ -96,7 +96,7 @@ export default function AssignMentorStudentsPage() {
 
   const mentorId =
     Number(
-      params.mentorId,
+      params.id,
     );
 
   const [

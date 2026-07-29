@@ -28,7 +28,7 @@ export interface CreateCollegePayload {
   state: string;
   district: string;
   pincode: string;
-  logo?: string | null;
+
   college_share: number;
   rknexora_share: number;
   status: "active" | "inactive" | "pending";
@@ -168,8 +168,12 @@ export interface AdminChapter {
   module_id: number;
   chapter_number: number;
   chapter_name: string;
-  content_type: ChapterContentType;
-  content_url: string;
+
+  content_type?: ChapterContentType | null;
+  content_url?: string | null;
+
+  resources?: AdminChapterResource[];
+
   Module?: AdminModule;
   module?: AdminModule;
 }
@@ -191,7 +195,7 @@ export interface LearningListParams {
   domain_id?: number | string;
   module_id?: number | string;
   chapter_id?: number | string;
-  content_type?: ChapterContentType | "";
+ 
 }
 
 export interface CreateSectorPayload {
@@ -217,9 +221,11 @@ export interface CreateChapterPayload {
   module_id: number;
   chapter_number: number;
   chapter_name: string;
-  content_type: ChapterContentType;
-  file?: File;
-  content_url?: string;
+
+  description?: string | null;
+  duration_minutes?: number;
+  is_preview?: boolean;
+  status?: "draft" | "published";
 }
 
 export interface CreateAssignmentPayload {
@@ -422,6 +428,134 @@ export interface AdminDashboardData {
   recent_colleges: AdminDashboardRecentCollege[];
 }
 
+export type ChapterResourceType =
+  | "video"
+  | "pdf"
+  | "ppt"
+  | "document"
+  | "image"
+  | "audio"
+  | "text"
+  | "link"
+  | "zip"
+  | "source_code"
+  | "other";
+
+export interface AdminChapterResource {
+  id: number;
+  chapter_id: number;
+
+  title: string;
+  resource_type: ChapterResourceType;
+
+  file_url?: string | null;
+  external_url?: string | null;
+  text_content?: string | null;
+
+  file_name?: string | null;
+  mime_type?: string | null;
+  file_size?: number | string | null;
+
+  sort_order: number;
+
+  is_downloadable: boolean;
+  is_primary: boolean;
+
+  status: "active" | "inactive";
+
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateChapterResourcePayload {
+  title: string;
+  resource_type: ChapterResourceType;
+
+  file?: File;
+
+  external_url?: string;
+  text_content?: string;
+
+  sort_order?: number;
+
+  is_downloadable?: boolean;
+  is_primary?: boolean;
+
+  status?: "active" | "inactive";
+}
+
+export interface ChapterResourcesResponse {
+  chapter: AdminChapter;
+  resources: AdminChapterResource[];
+}
+
+export type QuizStatus =
+  | "draft"
+  | "active"
+  | "inactive";
+
+export interface QuizOption {
+  id: string;
+  text: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  options: QuizOption[];
+  correct_option_id: string;
+  marks: number;
+  explanation: string | null;
+}
+
+export interface AdminQuiz {
+  id: number;
+  chapter_id: number;
+  title: string;
+  description: string | null;
+  questions_json: QuizQuestion[];
+  passing_score: number | string;
+  total_marks: number | string;
+  attempts_allowed: number;
+  time_limit_minutes: number | null;
+  randomize_questions: boolean;
+  show_result_immediately: boolean;
+  status: QuizStatus;
+  created_at: string;
+  updated_at: string;
+
+  chapter?: AdminChapter;
+  Chapter?: AdminChapter;
+}
+
+export interface QuizListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: QuizStatus | "";
+  chapter_id?: number | string;
+  module_id?: number | string;
+  domain_id?: number | string;
+  sector_id?: number | string;
+}
+
+export interface CreateQuizPayload {
+  chapter_id: number;
+  title: string;
+  description?: string | null;
+  questions: QuizQuestion[];
+  passing_score: number;
+  attempts_allowed: number;
+  time_limit_minutes?: number | null;
+  randomize_questions: boolean;
+  show_result_immediately: boolean;
+  status: QuizStatus;
+}
+
+export type UpdateQuizPayload =
+  Partial<CreateQuizPayload>;
+
+
 const createChapterFormData = (
   data: CreateChapterPayload | Partial<CreateChapterPayload>,
 ) => {
@@ -443,20 +577,87 @@ const createChapterFormData = (
     formData.append("chapter_name", data.chapter_name);
   }
 
-  if (data.content_type !== undefined) {
-    formData.append("content_type", data.content_type);
-  }
+  // if (data.content_type !== undefined) {
+  //   formData.append("content_type", data.content_type);
+  // }
 
-  if (data.content_url !== undefined) {
-    formData.append("content_url", data.content_url);
-  }
+  // if (data.content_url !== undefined) {
+  //   formData.append("content_url", data.content_url);
+  // }
+
+  // if (data.file) {
+  //   formData.append("file", data.file);
+  // }
+
+  return formData;
+};
+const createChapterResourceFormData = (
+  data: CreateChapterResourcePayload,
+) => {
+  const formData = new FormData();
+
+  formData.append(
+    "title",
+    data.title,
+  );
+
+  formData.append(
+    "resource_type",
+    data.resource_type,
+  );
 
   if (data.file) {
-    formData.append("file", data.file);
+    formData.append(
+      "file",
+      data.file,
+    );
+  }
+
+  if (data.external_url !== undefined) {
+    formData.append(
+      "external_url",
+      data.external_url,
+    );
+  }
+
+  if (data.text_content !== undefined) {
+    formData.append(
+      "text_content",
+      data.text_content,
+    );
+  }
+
+  if (data.sort_order !== undefined) {
+    formData.append(
+      "sort_order",
+      String(data.sort_order),
+    );
+  }
+
+  if (data.is_downloadable !== undefined) {
+    formData.append(
+      "is_downloadable",
+      String(data.is_downloadable),
+    );
+  }
+
+  if (data.is_primary !== undefined) {
+    formData.append(
+      "is_primary",
+      String(data.is_primary),
+    );
+  }
+
+  if (data.status !== undefined) {
+    formData.append(
+      "status",
+      data.status,
+    );
   }
 
   return formData;
 };
+
 
 export const adminService = {
 
@@ -485,37 +686,45 @@ dashboard: () =>
       `/admin/colleges/${id}`,
     ),
 
-  createCollege: (data: CreateCollegePayload) =>
-    api.post<
-      ApiResponse<{
-        college: College;
-        admin: {
-          id: number;
-          username: string;
-          email: string;
-          role: string;
-          college_id: number;
-          status: string;
-        };
-      }>
-    >("/admin/colleges", data),
+ createCollege: (
+  data: FormData,
+) =>
+  api.post<
+    ApiResponse<{
+      college: College;
+      admin: {
+        id: number;
+        username: string;
+        email: string;
+        role: string;
+        college_id: number;
+        status: string;
+      };
+    }>
+  >(
+    "/admin/colleges",
+    data,
+  ),
 
   updateCollege: (
-    id: number,
-    data: UpdateCollegePayload,
-  ) =>
-    api.put<
-      ApiResponse<{
-        college: College;
-        admin: {
-          id: number;
-          username: string;
-          email: string;
-          role: string;
-          status: string;
-        } | null;
-      }>
-    >(`/admin/colleges/${id}`, data),
+  id: number,
+  data: FormData,
+) =>
+  api.put<
+    ApiResponse<{
+      college: College;
+      admin: {
+        id: number;
+        username: string;
+        email: string;
+        role: string;
+        status: string;
+      } | null;
+    }>
+  >(
+    `/admin/colleges/${id}`,
+    data,
+  ),
 
   approveCollege: (id: number) =>
     api.patch<ApiResponse<College>>(
@@ -798,6 +1007,62 @@ deleteChapter: (id: number) =>
   api.delete<ApiResponse<Record<string, never>>>(
     `/admin/chapters/${id}`,
   ),
+
+  chapterResources: (
+  chapterId: number,
+) =>
+  api.get<
+    ApiResponse<ChapterResourcesResponse>
+  >(
+    `/admin/chapters/${chapterId}/resources`,
+  ),
+
+createChapterResource: (
+  chapterId: number,
+  data: CreateChapterResourcePayload,
+) =>
+  api.post<
+    ApiResponse<AdminChapterResource>
+  >(
+    `/admin/chapters/${chapterId}/resources`,
+    createChapterResourceFormData(data),
+  ),
+
+updateChapterResource: (
+  resourceId: number,
+  data: CreateChapterResourcePayload,
+) =>
+  api.put<
+    ApiResponse<AdminChapterResource>
+  >(
+    `/admin/chapter-resources/${resourceId}`,
+    createChapterResourceFormData(data),
+  ),
+
+deleteChapterResource: (
+  resourceId: number,
+) =>
+  api.delete<
+    ApiResponse<Record<string, never>>
+  >(
+    `/admin/chapter-resources/${resourceId}`,
+  ),
+
+reorderChapterResources: (
+  chapterId: number,
+  items: Array<{
+    id: number;
+    sort_order: number;
+  }>,
+) =>
+  api.put<
+    ApiResponse<AdminChapterResource[]>
+  >(
+    `/admin/chapters/${chapterId}/resources/reorder`,
+    {
+      items,
+    },
+  ),
   /*
   |--------------------------------------------------------------------------
   | Assignments
@@ -849,6 +1114,48 @@ bulkStatus: (
   >(
     `/admin/bulk/status/${jobUuid}`,
   ),
+
+  quizzes: (
+  params?: QuizListParams,
+) =>
+  api.get<
+    ApiResponse<
+      PaginatedData<AdminQuiz>
+    >
+  >("/admin/quizzes", {
+    params,
+  }),
+
+quizById: (
+  id: number,
+) =>
+  api.get<
+    ApiResponse<AdminQuiz>
+  >(`/admin/quizzes/${id}`),
+
+createQuiz: (
+  data: CreateQuizPayload,
+) =>
+  api.post<
+    ApiResponse<AdminQuiz>
+  >("/admin/quizzes", data),
+
+updateQuiz: (
+  id: number,
+  data: UpdateQuizPayload,
+) =>
+  api.put<
+    ApiResponse<AdminQuiz>
+  >(`/admin/quizzes/${id}`, data),
+
+deleteQuiz: (
+  id: number,
+) =>
+  api.delete<
+    ApiResponse<{
+      id: number;
+    }>
+  >(`/admin/quizzes/${id}`),
 };
 
 export interface ExcelImportWarning {
@@ -1248,17 +1555,29 @@ export interface StudentDashboardData {
     course_progress: number;
     attendance: number;
     overall_progress: number;
+
+    completed_chapters: number;
+    total_chapters: number;
+    remaining_chapters: number;
+
     learning_hours: number;
     required_hours: number;
     hours_remaining: number;
+
     logbook_hours: number;
     logbook_entries: number;
-    assignments_completed: number;
-    assignments_submitted: number;
+
     assignments_total: number;
+    assignments_submitted: number;
+    assignments_completed: number;
     assignment_progress: number;
-    completed_chapters: number;
-    total_chapters: number;
+
+    total_quizzes: number;
+    quizzes_passed: number;
+    quizzes_remaining: number;
+    quiz_progress: number;
+    quiz_average: number;
+    total_quiz_attempts: number;
   };
 
   attendance_summary: {
@@ -1301,6 +1620,58 @@ export interface StudentDashboardData {
       date?: string | null;
     } | null;
   };
+
+  eligibility: {
+  eligible: boolean;
+
+  checks: {
+     chapters_completed: boolean;
+  quizzes_passed: boolean;
+  assignments_completed: boolean;
+
+  required_hours_completed: boolean;
+  attendance_completed: boolean;
+
+  project_approved: boolean;
+  report_approved: boolean;
+  };
+
+  progress: {
+    chapters: {
+      total: number;
+      completed: number;
+      percentage: number;
+    };
+
+    quizzes: {
+      total: number;
+      passed: number;
+      percentage: number;
+    };
+
+    assignments: {
+      total: number;
+      approved: number;
+      percentage: number;
+    };
+
+    learning_hours: {
+  required: number;
+  completed: number;
+  remaining: number;
+  percentage: number;
+};
+
+attendance: {
+  total_days: number;
+  effective_present_days: number;
+  percentage: number;
+  minimum_required: number;
+};
+  };
+};
+
+
 
   recent_activities: StudentRecentActivity[];
 }
@@ -1367,21 +1738,206 @@ export interface StudentProfileUpdatePayload {
   photo?: string | null;
 }
 
+export interface StudentChapterResource {
+  id: number;
+  chapter_id: number;
+
+  title: string;
+
+  resource_type:
+    | "video"
+    | "pdf"
+    | "ppt"
+    | "document"
+    | "image"
+    | "audio"
+    | "text"
+    | "link"
+    | "zip"
+    | "source_code"
+    | "other";
+
+  file_url?: string | null;
+  external_url?: string | null;
+  text_content?: string | null;
+
+  file_name?: string | null;
+  mime_type?: string | null;
+  file_size?: number | string | null;
+
+  duration_seconds?: number | null;
+
+  sort_order: number;
+
+  is_downloadable: boolean;
+  is_primary: boolean;
+
+  status: "active" | "inactive";
+}
+
+export interface StudentChapterQuiz {
+  id: number;
+  chapter_id: number;
+
+  title: string;
+  description?: string | null;
+
+  passing_score: number;
+  total_marks: number;
+
+  attempts_allowed: number;
+  attempts_used: number;
+  attempts_remaining: number;
+
+  time_limit_minutes?: number | null;
+
+  randomize_questions: boolean;
+  show_result_immediately: boolean;
+
+  status:
+    | "draft"
+    | "active"
+    | "inactive";
+
+  passed: boolean;
+
+  can_start: boolean;
+
+  active_attempt_id:
+    | number
+    | null;
+
+  best_score:
+    | number
+    | null;
+
+  best_attempt_id:
+    | number
+    | null;
+
+  latest_attempt:
+    | {
+        id: number;
+        attempt_number: number;
+        percentage: number;
+        passed: boolean;
+        status:
+          | "in_progress"
+          | "submitted"
+          | "expired";
+      }
+    | null;
+}
+
 export interface StudentChapter {
   id: number;
   module_id: number;
+
   chapter_number: number;
   chapter_name: string;
-  content_type:
-    | "video"
-    | "pdf"
-    | "text"
-    | "link";
-  content_url: string;
+
+  description?: string | null;
+
+  duration_minutes?: number;
+
+  is_preview?: boolean;
+
+  status?: string;
+
   unlocked: boolean;
   completed: boolean;
+
+  resources: StudentChapterResource[];
+
+  resource_count: number;
+
+  quiz?: StudentChapterQuiz | null;
+
+  has_quiz?: boolean;
+
   created_at?: string;
   updated_at?: string;
+}
+
+export interface StudentQuizOption {
+  id: string;
+  text: string;
+}
+
+export interface StudentQuizQuestion {
+  id: string;
+  question: string;
+  options: StudentQuizOption[];
+  marks: number;
+}
+
+export interface StudentQuizSummary {
+  id: number;
+  chapter_id: number;
+  title: string;
+  description?: string | null;
+  passing_score: number;
+  total_marks: number;
+  attempts_allowed: number;
+  time_limit_minutes?: number | null;
+  question_count: number;
+}
+
+export interface StudentQuizAttemptInfo {
+  id: number;
+  attempt_number: number;
+  started_at: string;
+  expires_at?: string | null;
+  status: "in_progress" | "submitted" | "expired";
+}
+
+export interface StudentQuizStartData {
+  attempt: StudentQuizAttemptInfo;
+  quiz: StudentQuizSummary;
+  questions: StudentQuizQuestion[];
+}
+
+export interface StudentQuizSubmitPayload {
+  answers: Array<{
+    question_id: string;
+    selected_option_id: string | null;
+  }>;
+}
+
+export interface StudentQuizResultAnswer {
+  question_id: string;
+  question: string;
+  options: StudentQuizOption[];
+  selected_option_id: string | null;
+  correct_option_id: string;
+  is_correct: boolean;
+  marks_allocated: number;
+  marks_obtained: number;
+  explanation?: string | null;
+}
+
+export interface StudentQuizResultData {
+  attempt: {
+    id: number;
+    attempt_number: number;
+    total_marks: number;
+    obtained_marks: number;
+    percentage: number;
+    passing_score: number;
+    passed: boolean;
+    status: "submitted" | "expired";
+    started_at: string;
+    submitted_at?: string | null;
+    expires_at?: string | null;
+    time_taken_seconds?: number | null;
+  };
+  quiz: {
+    id: number;
+    title: string;
+    description?: string | null;
+    chapter_id: number;
+  };
+  answers?: StudentQuizResultAnswer[];
 }
 
 export interface StudentLearningModule {
@@ -1398,9 +1954,21 @@ export interface StudentLearningData {
   modules: StudentLearningModule[];
 
   summary: {
+    total_modules: number;
+
     total_chapters: number;
     completed_chapters: number;
+    remaining_chapters: number;
+
     progress_percentage: number;
+
+    total_quizzes: number;
+    quizzes_passed: number;
+    quizzes_remaining: number;
+
+    quiz_progress_percentage: number;
+
+    average_quiz_score: number;
   };
 }
 
@@ -1574,9 +2142,33 @@ export interface StudentReport {
 export interface StudentPayment {
   id: number;
   amount: number;
+  currency: string;
+
   transaction_id: string;
+  cashfree_order_id?: string | null;
+  cf_payment_id?: string | null;
+
+  gateway?: string | null;
   status: string;
-  created_at?: string;
+
+  paid_at?: string | null;
+  created_at?: string | null;
+
+  receipt_number?: string | null;
+  receipt_generated_at?: string | null;
+  receipt_available: boolean;
+  receipt_download_url?: string | null;
+}
+
+export interface StudentPaymentsData {
+  payments: StudentPayment[];
+
+  summary: {
+    total_transactions: number;
+    successful_transactions: number;
+    total_paid: number;
+    payment_status: string;
+  };
 }
 
 export interface StudentCertificateData {
@@ -1754,6 +2346,34 @@ checkOut: () =>
     >
   >("/student/attendance/check-out"),
 
+  quizDetails: (quizId: number) =>
+  api.get(`/student/quizzes/${quizId}`),
+
+startQuiz: (quizId: number) =>
+  api.post<ApiResponse<StudentQuizStartData>>(
+    `/student/quizzes/${quizId}/start`,
+  ),
+
+submitQuiz: (
+  attemptId: number,
+  payload: StudentQuizSubmitPayload,
+) =>
+  api.post<ApiResponse<StudentQuizResultData>>(
+    `/student/quiz-attempts/${attemptId}/submit`,
+    payload,
+  ),
+
+quizAttemptResult: (attemptId: number) =>
+  api.get<ApiResponse<StudentQuizResultData>>(
+    `/student/quiz-attempts/${attemptId}/result`,
+  ),
+
+quizAttempts: (quizId: number) =>
+  api.get(
+    `/student/quizzes/${quizId}/attempts`,
+  ),
+
+
   logbooks: () =>
     api.get<
       ApiResponse<StudentLogbook[]>
@@ -1849,20 +2469,32 @@ checkOut: () =>
     ),
 
   payments: () =>
-    api.get<
-      ApiResponse<StudentPayment[]>
-    >(
-      "/student/payments",
-    ),
+  api.get<
+    ApiResponse<StudentPaymentsData>
+  >(
+    "/student/payments",
+  ),
 
-  paymentById: (
-    paymentId: number,
-  ) =>
-    api.get<
-      ApiResponse<StudentPayment>
-    >(
-      `/student/payments/${paymentId}`,
-    ),
+paymentById: (
+  paymentId: number,
+) =>
+  api.get<
+    ApiResponse<{
+      payment: StudentPayment;
+    }>
+  >(
+    `/student/payments/${paymentId}`,
+  ),
+
+downloadPaymentReceipt: (
+  paymentId: number,
+) =>
+  api.get(
+    `/student/payments/${paymentId}/receipt`,
+    {
+      responseType: "blob",
+    },
+  ),
 
   certificate: () =>
     api.get<

@@ -7,6 +7,8 @@ import {
   useState,
 } from "react";
 
+import { useRouter } from "next/navigation";
+
 import {
   AlertCircle,
   ArrowLeft,
@@ -23,6 +25,7 @@ import {
   Lock,
   PlayCircle,
   RefreshCw,
+   BrainCircuit, Trophy
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -139,15 +142,21 @@ const getChapterIcon = (
     return Lock;
   }
 
-  if (chapter.content_type === "video") {
+  const primaryResource =
+    chapter.resources?.find(
+      (resource) => resource.is_primary,
+    ) ??
+    chapter.resources?.[0];
+
+  if (primaryResource?.resource_type === "video") {
     return PlayCircle;
   }
 
-  if (chapter.content_type === "pdf") {
+  if (primaryResource?.resource_type === "pdf") {
     return FileText;
   }
 
-  if (chapter.content_type === "link") {
+  if (primaryResource?.resource_type === "link") {
     return Link2;
   }
 
@@ -238,95 +247,164 @@ function EmptyState() {
   );
 }
 
-function ContentViewer({
-  chapter,
+function ChapterResourceViewer({
+  resource,
 }: {
-  chapter: StudentChapter;
+  resource: StudentChapter["resources"][number];
 }) {
-  const contentUrl = getContentUrl(
-    chapter.content_url,
+  const fileUrl = getContentUrl(
+    resource.file_url,
   );
 
-  if (!chapter.content_url) {
-    return (
-      <div className="grid min-h-[360px] place-items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-        <div>
-          <BookOpen
-            className="mx-auto text-slate-400"
-            size={40}
-          />
-
-          <h3 className="mt-4 font-semibold text-slate-700">
-            Content not available
-          </h3>
-
-          <p className="mt-2 text-sm text-slate-500">
-            Content has not been added to
-            this chapter yet.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  const externalUrl =
+    resource.external_url || "";
 
   if (
-    chapter.content_type === "video"
+    resource.resource_type === "video"
   ) {
     const videoUrl =
-      getYouTubeEmbedUrl(contentUrl);
+      externalUrl || fileUrl;
+
+    if (!videoUrl) {
+      return null;
+    }
+
+    const isYouTube =
+      videoUrl.includes("youtube.com") ||
+      videoUrl.includes("youtu.be");
 
     return (
-      <div className="overflow-hidden rounded-2xl bg-slate-950">
-        <iframe
-          src={videoUrl}
-          title={chapter.chapter_name}
-          className="aspect-video w-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
-    );
-  }
-
-  if (
-    chapter.content_type === "pdf"
-  ) {
-    return (
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
-        <iframe
-          src={contentUrl}
-          title={chapter.chapter_name}
-          className="h-[650px] w-full"
-        />
-      </div>
-    );
-  }
-
-  if (
-    chapter.content_type === "link"
-  ) {
-    return (
-      <div className="grid min-h-[360px] place-items-center rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center">
-        <div>
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-blue-100 text-blue-600">
-            <ExternalLink size={25} />
-          </div>
-
-          <h3 className="mt-4 text-lg font-bold">
-            External learning resource
-          </h3>
-
-          <p className="mt-2 text-sm text-slate-500">
-            This chapter content is
-            available on an external
-            website.
+      <section className="card">
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+            Video
           </p>
 
+          <h3 className="mt-1 font-bold text-slate-900">
+            {resource.title}
+          </h3>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl bg-slate-950">
+          {isYouTube ? (
+            <iframe
+              src={getYouTubeEmbedUrl(
+                videoUrl,
+              )}
+              title={resource.title}
+              className="aspect-video w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <video
+              src={videoUrl}
+              controls
+              className="aspect-video w-full"
+            >
+              Your browser does not support
+              video playback.
+            </video>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  if (
+    resource.resource_type === "pdf"
+  ) {
+    if (!fileUrl) {
+      return null;
+    }
+
+    return (
+      <section className="card">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-red-600">
+              PDF
+            </p>
+
+            <h3 className="mt-1 font-bold">
+              {resource.title}
+            </h3>
+          </div>
+
+          {resource.is_downloadable && (
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold"
+            >
+              Open PDF
+
+              <ExternalLink
+                size={15}
+                className="ml-2"
+              />
+            </a>
+          )}
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+          <iframe
+            src={fileUrl}
+            title={resource.title}
+            className="h-[650px] w-full"
+          />
+        </div>
+      </section>
+    );
+  }
+
+  if (
+    resource.resource_type === "text"
+  ) {
+    return (
+      <section className="card">
+        <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
+          Reading Material
+        </p>
+
+        <h3 className="mt-1 font-bold">
+          {resource.title}
+        </h3>
+
+        <div className="mt-4 whitespace-pre-wrap text-sm leading-7 text-slate-700">
+          {resource.text_content ||
+            "No text content available."}
+        </div>
+      </section>
+    );
+  }
+
+  if (
+    resource.resource_type === "link"
+  ) {
+    if (!externalUrl) {
+      return null;
+    }
+
+    return (
+      <section className="card">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+              External Resource
+            </p>
+
+            <h3 className="mt-1 font-bold">
+              {resource.title}
+            </h3>
+          </div>
+
           <a
-            href={contentUrl}
+            href={externalUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-5 inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+            className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white"
           >
             Open Resource
 
@@ -336,18 +414,131 @@ function ContentViewer({
             />
           </a>
         </div>
+      </section>
+    );
+  }
+
+  if (
+    resource.resource_type === "image" &&
+    fileUrl
+  ) {
+    return (
+      <section className="card">
+        <h3 className="mb-4 font-bold">
+          {resource.title}
+        </h3>
+
+        <img
+          src={fileUrl}
+          alt={resource.title}
+          className="max-h-[650px] w-full rounded-xl object-contain"
+        />
+      </section>
+    );
+  }
+
+  if (
+    resource.resource_type === "audio" &&
+    fileUrl
+  ) {
+    return (
+      <section className="card">
+        <h3 className="mb-4 font-bold">
+          {resource.title}
+        </h3>
+
+        <audio
+          src={fileUrl}
+          controls
+          className="w-full"
+        />
+      </section>
+    );
+  }
+
+  if (fileUrl) {
+    return (
+      <section className="card">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {resource.resource_type}
+            </p>
+
+            <h3 className="mt-1 font-bold">
+              {resource.title}
+            </h3>
+
+            {resource.file_name && (
+              <p className="mt-1 text-xs text-slate-500">
+                {resource.file_name}
+              </p>
+            )}
+          </div>
+
+          <a
+            href={fileUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold"
+          >
+            Open Resource
+
+            <ExternalLink
+              size={16}
+              className="ml-2"
+            />
+          </a>
+        </div>
+      </section>
+    );
+  }
+
+  return null;
+}
+function ResourceViewer({
+  chapter,
+}: {
+  chapter: StudentChapter;
+}) {
+  const resources =
+    chapter.resources ?? [];
+
+  if (resources.length === 0) {
+    return (
+      <div className="grid min-h-[300px] place-items-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+        <div>
+          <BookOpen
+            size={40}
+            className="mx-auto text-slate-400"
+          />
+
+          <h3 className="mt-4 font-semibold">
+            No resources available
+          </h3>
+
+          <p className="mt-2 text-sm text-slate-500">
+            No active learning resources
+            have been added to this chapter.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[360px] whitespace-pre-wrap rounded-2xl border border-slate-200 bg-white p-6 text-sm leading-7 text-slate-700">
-      {chapter.content_url}
+    <div className="space-y-5">
+      {resources.map((resource) => (
+        <ChapterResourceViewer
+          key={resource.id}
+          resource={resource}
+        />
+      ))}
     </div>
   );
 }
-
 export default function LearningPage() {
+  const router = useRouter();
   const [
     learning,
     setLearning,
@@ -775,16 +966,12 @@ export default function LearningPage() {
                                     }
                                   </p>
 
-                                  <p className="mt-0.5 text-xs capitalize opacity-70">
-                                    Chapter{" "}
-                                    {
-                                      chapter.chapter_number
-                                    }{" "}
-                                    •{" "}
-                                    {
-                                      chapter.content_type
-                                    }
-                                  </p>
+                                  <p className="mt-0.5 text-xs opacity-70">
+  Chapter {chapter.chapter_number}
+  {" • "}
+  {chapter.resource_count ?? chapter.resources?.length ?? 0}{" "}
+  Resources
+</p>
                                 </div>
 
                                 {chapter.completed && (
@@ -819,11 +1006,12 @@ export default function LearningPage() {
                 <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold capitalize text-blue-600">
-                        {
-                          activeChapter.content_type
-                        }
-                      </span>
+                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
+  {activeChapter.resource_count ??
+    activeChapter.resources?.length ??
+    0}{" "}
+  Resources
+</span>
 
                       {activeChapter.completed && (
                         <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-600">
@@ -857,7 +1045,8 @@ export default function LearningPage() {
                     type="button"
                     disabled={
                       activeChapter.completed ||
-                      completing
+                      completing ||
+                       Boolean(activeChapter.quiz)
                     }
                     onClick={() => {
                       void handleCompleteChapter();
@@ -876,17 +1065,131 @@ export default function LearningPage() {
                     )}
 
                     {activeChapter.completed
-                      ? "Completed"
-                      : completing
-                        ? "Completing..."
-                        : "Mark Complete"}
+  ? "Completed"
+  : activeChapter.quiz
+    ? "Pass Quiz to Complete"
+    : completing
+      ? "Completing..."
+      : "Mark Complete"}
                   </Button>
                 </div>
               </section>
 
-              <ContentViewer
+              <ResourceViewer
                 chapter={activeChapter}
               />
+              {activeChapter.quiz &&
+  activeChapter.quiz.status === "active" && (
+    <section className="card">
+      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+        <div>
+          <div className="flex items-center gap-2">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-violet-50 text-violet-600">
+              <BrainCircuit size={20} />
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+                Chapter Quiz
+              </p>
+              <h2 className="font-bold text-slate-900">
+                {activeChapter.quiz.title}
+              </h2>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
+            <span className="rounded-full bg-slate-100 px-3 py-1.5">
+              Passing: {activeChapter.quiz.passing_score}%
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1.5">
+              Marks: {activeChapter.quiz.total_marks}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1.5">
+              Attempts left:{" "}
+              {activeChapter.quiz.attempts_remaining ??
+                activeChapter.quiz.attempts_allowed}
+            </span>
+          </div>
+        </div>
+
+        <Button
+  type="button"
+  disabled={
+    !activeChapter.quiz.can_start &&
+    !activeChapter.quiz.passed
+  }
+  onClick={() => {
+    const quiz = activeChapter.quiz;
+
+    if (!quiz) return;
+
+    if (quiz.active_attempt_id) {
+      router.push(
+        `/student/learning/quiz/${quiz.id}`,
+      );
+      return;
+    }
+
+    if (
+      quiz.passed &&
+      quiz.best_attempt_id
+    ) {
+      router.push(
+        `/student/learning/result/${quiz.best_attempt_id}`,
+      );
+      return;
+    }
+
+    if (!quiz.can_start) {
+      toast.error(
+        "No quiz attempts are remaining.",
+      );
+      return;
+    }
+
+    router.push(
+      `/student/learning/quiz/${quiz.id}`,
+    );
+  }}
+>
+  {activeChapter.quiz.passed ? (
+    <>
+      <Trophy
+        size={17}
+        className="mr-2"
+      />
+      View Result
+    </>
+  ) : activeChapter.quiz.active_attempt_id ? (
+    <>
+      <BrainCircuit
+        size={17}
+        className="mr-2"
+      />
+      Continue Quiz
+    </>
+  ) : activeChapter.quiz.attempts_used > 0 ? (
+    <>
+      <RefreshCw
+        size={17}
+        className="mr-2"
+      />
+      Retry Quiz
+    </>
+  ) : (
+    <>
+      <BrainCircuit
+        size={17}
+        className="mr-2"
+      />
+      Start Quiz
+    </>
+  )}
+</Button>
+      </div>
+    </section>
+  )}
 
               <section className="card flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                 <Button

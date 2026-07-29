@@ -520,7 +520,7 @@ export default function CollegeDashboardPage() {
             />
 
             <SummaryRow
-              label="Pending Payments"
+              label="Pending for Payments"
               value={
                 summary?.pending_payments
               }

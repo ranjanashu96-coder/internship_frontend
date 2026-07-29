@@ -112,12 +112,50 @@ export interface LearningModule {
   chapters: Chapter[];
 }
 
+export type ChapterResourceType =
+  | "video"
+  | "pdf"
+  | "ppt"
+  | "document"
+  | "image"
+  | "audio"
+  | "text"
+  | "link"
+  | "zip"
+  | "source_code"
+  | "other";
+
+export interface ChapterResource {
+  id: number;
+  chapter_id: number;
+
+  title: string;
+
+  resource_type: ChapterResourceType;
+
+  file_url?: string | null;
+  external_url?: string | null;
+  text_content?: string | null;
+
+  file_name?: string | null;
+  mime_type?: string | null;
+  file_size?: number | null;
+
+  sort_order: number;
+
+  is_downloadable: boolean;
+  is_primary: boolean;
+
+  status: "active" | "inactive";
+}
+
 export interface Chapter {
   id: number;
   module_id: number;
   chapter_number: number;
   chapter_name: string;
   content_type: "video" | "pdf" | "text" | "link";
+  resources?: ChapterResource[];
   content_url: string;
   completed: boolean;
   locked: boolean;

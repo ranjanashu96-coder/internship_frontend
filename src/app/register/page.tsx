@@ -1208,21 +1208,40 @@ await cashfree.checkout({
                       />
                     </Field>
 
-                    <Field label="Session" error={errors.session?.message}>
-                      <Input
-                        className="h-12 rounded-xl border-slate-200 bg-white px-4 shadow-sm transition focus-visible:ring-4 focus-visible:ring-blue-500/10"
-                        placeholder="e.g. 2026-29"
-                        {...register("session")}
-                      />
-                    </Field>
+                   <Field label="Session" error={errors.session?.message}>
+  <select
+    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+    {...register("session")}
+  >
+    <option value="">Select Session</option>
 
-                    <Field label="Semester" error={errors.semester?.message}>
-                      <Input
-                        className="h-12 rounded-xl border-slate-200 bg-white px-4 shadow-sm transition focus-visible:ring-4 focus-visible:ring-blue-500/10"
-                        placeholder="e.g. 1"
-                        {...register("semester")}
-                      />
-                    </Field>
+    <option value="2024-27">2024-27</option>
+    <option value="2025-28">2025-28</option>
+    <option value="2026-29">2026-29</option>
+    <option value="2027-30">2027-30</option>
+    <option value="2028-31">2028-31</option>
+    <option value="2029-32">2029-32</option>
+    <option value="2030-33">2030-33</option>
+  </select>
+</Field>
+
+                   <Field label="Semester" error={errors.semester?.message}>
+  <select
+    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+    {...register("semester")}
+  >
+    <option value="">Select Semester</option>
+
+    <option value="1">Semester 1</option>
+    <option value="2">Semester 2</option>
+    <option value="3">Semester 3</option>
+    <option value="4">Semester 4</option>
+    <option value="5">Semester 5</option>
+    <option value="6">Semester 6</option>
+    <option value="7">Semester 7</option>
+    <option value="8">Semester 8</option>
+  </select>
+</Field>
                   </div>
                 </div>
 
