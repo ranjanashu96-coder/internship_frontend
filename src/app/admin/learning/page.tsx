@@ -303,24 +303,100 @@ const [
     [modules, form.domain_id],
   );
 
-  const loadReferences = useCallback(async () => {
-    try {
-      const [sectorResponse, domainResponse, moduleResponse, chapterResponse] =
-        await Promise.all([
-          adminService.sectors({ page: 1, limit: 100 }),
-          adminService.domains({ page: 1, limit: 100 }),
-          adminService.modules({ page: 1, limit: 100 }),
-          adminService.chapters({ page: 1, limit: 100 }),
-        ]);
+ const loadReferences = useCallback(async () => {
+  try {
+    const [
+      sectorResponse,
+      domainResponse,
+      firstModuleResponse,
+      chapterResponse,
+    ] = await Promise.all([
+      adminService.sectors({
+        page: 1,
+        limit: 100,
+      }),
 
-      setSectors(sectorResponse.data.data.items);
-      setDomains(domainResponse.data.data.items);
-      setModules(moduleResponse.data.data.items);
-      setChapters(chapterResponse.data.data.items);
-    } catch (error) {
-      toast.error(errorMessage(error));
+      adminService.domains({
+        page: 1,
+        limit: 100,
+      }),
+
+      adminService.modules({
+        page: 1,
+        limit: 100,
+      }),
+
+      adminService.chapters({
+        page: 1,
+        limit: 100,
+      }),
+    ]);
+
+    setSectors(
+      sectorResponse.data.data.items || [],
+    );
+
+    setDomains(
+      domainResponse.data.data.items || [],
+    );
+
+    setChapters(
+      chapterResponse.data.data.items || [],
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Load All Modules
+    |--------------------------------------------------------------------------
+    */
+
+    let allModules: AdminModule[] =
+      firstModuleResponse.data.data.items || [];
+
+    const totalModulePages =
+      Number(
+        firstModuleResponse.data.data.totalPages || 1,
+      );
+
+    if (totalModulePages > 1) {
+      const remainingRequests =
+        [];
+
+      for (
+        let modulePage = 2;
+        modulePage <= totalModulePages;
+        modulePage += 1
+      ) {
+        remainingRequests.push(
+          adminService.modules({
+            page: modulePage,
+            limit: 100,
+          }),
+        );
+      }
+
+      const remainingResponses =
+        await Promise.all(
+          remainingRequests,
+        );
+
+      for (
+        const response of remainingResponses
+      ) {
+        allModules = [
+          ...allModules,
+          ...(response.data.data.items || []),
+        ];
+      }
     }
-  }, []);
+
+    setModules(allModules);
+  } catch (error) {
+    toast.error(
+      errorMessage(error),
+    );
+  }
+}, []);
 
   const loadRows = useCallback(async () => {
     setLoading(true);
@@ -328,7 +404,7 @@ const [
     try {
       const params: LearningListParams = {
         page,
-        limit: 20,
+        limit: 5000,
         search: search.trim() || undefined,
       };
 

@@ -126,13 +126,13 @@ type FormValues =
 type RegistrationDocuments = {
   photo?: string | null;
   identity_document?: string | null;
-  marksheet?: string | null;
+  // marksheet?: string | null;
 };
 
 type SelectedFiles = {
   photo?: File;
   identity_document?: File;
-  marksheet?: File;
+  // marksheet?: File;
 };
 
 const steps = [
@@ -669,7 +669,7 @@ if (
     key:
       | "photo"
       | "identity_document"
-      | "marksheet",
+     
   ) =>
     Boolean(
       files[key] ||
@@ -695,10 +695,8 @@ if (
         ) ||
         !hasDocument(
           "identity_document",
-        ) ||
-        !hasDocument(
-          "marksheet",
-        )
+        ) 
+       
       ) {
         toast.error(
           "Photo, identity proof and marksheet are required",
@@ -751,8 +749,7 @@ if (
           identity_document:
             documents.identity_document,
 
-          marksheet:
-            documents.marksheet,
+         
         });
 
         setFiles({});
@@ -1014,8 +1011,8 @@ await cashfree.checkout({
           </h1>
 
           <p className="mx-auto mt-4 max-w-2xl leading-7 text-white/65">
-            Verify your college-uploaded registration number, complete your
-            profile, select an internship domain and activate your account.
+            Verify your Regitraition Number (as printed on your College Admit Card),complete your
+            profile, select an internship domain, and begin your internship journey with RK Nexora.
           </p>
         </section>
 
@@ -1072,13 +1069,13 @@ await cashfree.checkout({
   </div>
   <h2 className="text-2xl font-black tracking-tight text-[#071a2f]">
     Verify Registration Number
+
   </h2>
 </div>
 
               <p className="mx-auto mb-7 mt-2 max-w-xl text-center text-sm leading-6 text-slate-500">
-                Enter the registration
-                number uploaded by your
-                college.
+                Please enter the Registration Number exactly as printed on your University Admit Card to verify your internship registration.
+इंटर्नशिप पंजीकरण सत्यापित करने के लिए कृपया अपने विश्वविद्यालय के Admit Card पर अंकित Registration Number को बिल्कुल उसी प्रकार दर्ज करें।
               </p>
 
               <label className="label">
@@ -1124,8 +1121,7 @@ await cashfree.checkout({
                   Academic & Account Details
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Complete your academic information and create the credentials
-                  you will use to access the student portal.
+                 अपनी रुचि के अनुसार कोई भी इंटर्नशिप डोमेन चुनें। सभी पाठ्यक्रमों एवं सभी स्ट्रीम के विद्यार्थी किसी भी उपलब्ध डोमेन का चयन कर सकते हैं। आपके प्रशिक्षण की रूपरेखा चयनित डोमेन के अनुसार निर्धारित होगी।                                           Choose any internship domain based on your interests and career goals. Students from all courses and streams are eligible to select any available internship domain. Your learning modules, internship duration, and training plan will be based on your selected domain.
                 </p>
               </div>
 
@@ -1215,13 +1211,9 @@ await cashfree.checkout({
   >
     <option value="">Select Session</option>
 
-    <option value="2024-27">2024-27</option>
-    <option value="2025-28">2025-28</option>
-    <option value="2026-29">2026-29</option>
-    <option value="2027-30">2027-30</option>
-    <option value="2028-31">2028-31</option>
-    <option value="2029-32">2029-32</option>
-    <option value="2030-33">2030-33</option>
+    <option value="2024-27">2023-27</option>
+    <option value="2025-28">2024-28</option>
+
   </select>
 </Field>
 
@@ -1231,15 +1223,9 @@ await cashfree.checkout({
     {...register("semester")}
   >
     <option value="">Select Semester</option>
-
-    <option value="1">Semester 1</option>
-    <option value="2">Semester 2</option>
-    <option value="3">Semester 3</option>
-    <option value="4">Semester 4</option>
+    <option value="5">Semester 4</option>
     <option value="5">Semester 5</option>
-    <option value="6">Semester 6</option>
-    <option value="7">Semester 7</option>
-    <option value="8">Semester 8</option>
+    
   </select>
 </Field>
                   </div>
@@ -1512,7 +1498,7 @@ await cashfree.checkout({
                 />
 
                 <FileField
-                  label="Identity Proof"
+                  label="Last Semester Admit Card"
                   accept="application/pdf,image/png,image/jpeg"
                   existingFile={
                     savedDocuments.identity_document
@@ -1535,7 +1521,7 @@ await cashfree.checkout({
                   }
                 />
 
-                <FileField
+                {/* <FileField
                   label="Latest Marksheet"
                   accept="application/pdf,image/png,image/jpeg"
                   existingFile={
@@ -1557,7 +1543,7 @@ await cashfree.checkout({
                       }),
                     )
                   }
-                />
+                /> */}
               </div>
 
               <div className="mt-6 flex justify-between">
@@ -1730,12 +1716,7 @@ await cashfree.checkout({
                     )}
                   />
 
-                  <DocumentStatus
-                    label="Marksheet"
-                    available={hasDocument(
-                      "marksheet",
-                    )}
-                  />
+                 
                 </div>
               </div>
 

@@ -2,9 +2,10 @@ import { api,publicApi  } from "./api";
 
 
 import type {
-  ApiResponse,
+   ApiResponse,
   BulkJob,
   BulkJobType,
+  BulkPreviewData,
   BulkProcessPayload,
   BulkProcessResponse,
   College,
@@ -1092,7 +1093,39 @@ deleteAssignment: (id: number) =>
   |--------------------------------------------------------------------------
   */
 
-  processBulk: (
+  /*
+|--------------------------------------------------------------------------
+| Bulk Automation
+|--------------------------------------------------------------------------
+*/
+
+/*
+|--------------------------------------------------------------------------
+| Preview
+|--------------------------------------------------------------------------
+*/
+
+bulkPreview: (
+  type: BulkJobType,
+  payload: BulkProcessPayload,
+) =>
+  api.post<
+    ApiResponse<BulkPreviewData>
+  >(
+    "/admin/bulk/preview",
+    {
+      type,
+      payload,
+    },
+  ),
+
+/*
+|--------------------------------------------------------------------------
+| Process
+|--------------------------------------------------------------------------
+*/
+
+processBulk: (
   type: BulkJobType,
   payload: BulkProcessPayload,
 ) =>
@@ -1106,6 +1139,12 @@ deleteAssignment: (id: number) =>
     },
   ),
 
+/*
+|--------------------------------------------------------------------------
+| Single Job Status
+|--------------------------------------------------------------------------
+*/
+
 bulkStatus: (
   jobUuid: string,
 ) =>
@@ -1113,6 +1152,71 @@ bulkStatus: (
     ApiResponse<BulkJob>
   >(
     `/admin/bulk/status/${jobUuid}`,
+  ),
+
+/*
+|--------------------------------------------------------------------------
+| Job History
+|--------------------------------------------------------------------------
+*/
+
+bulkJobs: (
+  params?: {
+    page?: number;
+    limit?: number;
+
+    type?:
+      | BulkJobType
+      | "";
+
+    status?:
+      | "queued"
+      | "running"
+      | "completed"
+      | "failed"
+      | "cancelled"
+      | "";
+  },
+) =>
+  api.get<
+    ApiResponse<
+      PaginatedData<BulkJob>
+    >
+  >(
+    "/admin/bulk/jobs",
+    {
+      params,
+    },
+  ),
+
+/*
+|--------------------------------------------------------------------------
+| Cancel
+|--------------------------------------------------------------------------
+*/
+
+cancelBulk: (
+  jobUuid: string,
+) =>
+  api.post<
+    ApiResponse<BulkJob>
+  >(
+    `/admin/bulk/${jobUuid}/cancel`,
+  ),
+
+/*
+|--------------------------------------------------------------------------
+| Retry
+|--------------------------------------------------------------------------
+*/
+
+retryBulk: (
+  jobUuid: string,
+) =>
+  api.post<
+    ApiResponse<BulkProcessResponse>
+  >(
+    `/admin/bulk/${jobUuid}/retry`,
   ),
 
   quizzes: (

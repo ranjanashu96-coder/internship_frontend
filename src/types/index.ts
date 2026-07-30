@@ -196,14 +196,26 @@ export type BulkJobType =
   | "zip_documents"
   | "full_internship_process";
 
+
+export type BulkJobStatus =
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+
 export interface BulkProcessPayload {
   college_id?: number;
   sector_id?: number;
   domain_id?: number;
+
   session?: string;
   semester?: string;
+
   batch_id?: number;
   mentor_id?: number;
+
   student_ids?: number[];
 
   start_date?: string;
@@ -211,6 +223,7 @@ export interface BulkProcessPayload {
 
   login_time?: string;
   logout_time?: string;
+
   learning_hours?: number;
 
   status?:
@@ -220,12 +233,17 @@ export interface BulkProcessPayload {
     | "half_day";
 
   excluded_days?: number[];
+
   holidays?: string[];
 
   completed_at?: string;
+
   assessed_at?: string;
+
   published_at?: string;
+
   generated_at?: string;
+
   issued_date?: string;
 
   assessment_type?:
@@ -233,62 +251,183 @@ export interface BulkProcessPayload {
     | "final";
 
   technical_knowledge?: number;
+
   quality_of_work?: number;
+
   initiative?: number;
+
   communication?: number;
+
   professional_conduct?: number;
 
   pass_percentage?: number;
 
   supervisor_remarks?: string;
+
   result_remarks?: string;
 
   certificate_prefix?: string;
+
   daily_activity?: string;
+
   skills?: string;
+
   report_summary?: string;
 
   module_ids?: number[];
+
   chapter_ids?: number[];
 
   stop_on_error?: boolean;
 }
 
+
 export interface BulkProcessResponse {
   job_uuid: string;
+
   type: BulkJobType;
-  status:
-    | "queued"
-    | "running"
-    | "completed"
-    | "failed";
+
+  status: BulkJobStatus;
 }
 
-export interface BulkJobResult {
-  zip_url?: string | null;
-  completed_steps?: number;
-  failed_steps?: number;
-  [key: string]: unknown;
+
+export interface BulkPreviewStudent {
+  id: number;
+
+  registration_number: string;
+
+  student_id?:
+    | string
+    | null;
+
+  name: string;
+
+  college_id?:
+    | number
+    | null;
+
+  domain_id?:
+    | number
+    | null;
+
+  batch_id?:
+    | number
+    | null;
+
+  mentor_id?:
+    | number
+    | null;
+
+  internship_status?:
+    string;
+
+  payment_status?:
+    string;
+
+  college?: {
+    id: number;
+    name: string;
+  } | null;
+
+  domain?: {
+    id: number;
+    name: string;
+  } | null;
 }
+
+
+export interface BulkPreviewData {
+  type: BulkJobType;
+
+  matched_students: number;
+
+  working_days:
+    | number
+    | null;
+
+  estimated_records: number;
+
+  sample:
+    BulkPreviewStudent[];
+}
+
+
+export interface BulkJobResult {
+  zip_url?:
+    | string
+    | null;
+
+  completed_steps?: number;
+
+  failed_steps?: number;
+
+  completed?: Array<{
+    name: string;
+    result?: unknown;
+  }>;
+
+  failed?: Array<{
+    name: string;
+    error?: string;
+  }>;
+
+  [key: string]:
+    unknown;
+}
+
 
 export interface BulkJob {
   id?: number;
+
   job_uuid: string;
+
   type: BulkJobType;
 
-  status:
-    | "queued"
-    | "running"
-    | "completed"
-    | "failed";
+  status: BulkJobStatus;
 
-  progress: number | string;
+  current_step?:
+    | string
+    | null;
+
+  progress:
+    | number
+    | string;
+
   processed?: number;
+
   total?: number;
 
-  result?: BulkJobResult | null;
-  error_message?: string | null;
+  success_count?: number;
+
+  failed_count?: number;
+
+  cancel_requested?: boolean;
+
+  payload?:
+    | BulkProcessPayload
+    | null;
+
+  result?:
+    | BulkJobResult
+    | null;
+
+  error_message?:
+    | string
+    | null;
+
+  created_by?:
+    | number
+    | null;
+
+  started_at?:
+    | string
+    | null;
+
+  finished_at?:
+    | string
+    | null;
 
   created_at?: string;
+
   updated_at?: string;
 }

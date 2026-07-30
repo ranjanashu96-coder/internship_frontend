@@ -455,8 +455,8 @@ export function AppShell({
             </button>
 
             <div className="hidden text-sm font-medium text-slate-500 sm:block">
-              Internship ERP
-              Management System
+              Student Internship & 
+              Learning Portal
             </div>
           </div>
 
