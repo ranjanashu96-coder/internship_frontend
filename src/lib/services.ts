@@ -882,6 +882,25 @@ removeStudentsFromMentor: (
     api.delete<ApiResponse<Record<string, never>>>(
       `/admin/students/${id}`,
     ),
+    startStudentInternship: (
+  id: number,
+  startDate: string,
+) =>
+  api.patch<
+    ApiResponse<{
+      student_id: number;
+      name: string;
+      portal_registration_number?: string | null;
+      payment_status: string;
+      internship_status: string;
+      internship_start_date: string | null;
+    }>
+  >(
+    `/admin/students/${id}/start-internship`,
+    {
+      start_date: startDate,
+    },
+  ),
     importStudents: (
   collegeId: number,
   file: File,
@@ -1637,6 +1656,12 @@ export interface StudentDashboardData {
     session?: string | null;
     semester?: string | null;
     internship_status: string;
+
+internship_start_date?:
+  string | null;
+
+internship_end_date?:
+  string | null;
     payment_status: string;
 
     college?: {
@@ -2620,6 +2645,8 @@ export interface RegistrationVerification {
   student_id: number;
 
   registration_number: string;
+  portal_registration_number?: string | null;
+
 
   name: string;
   father_name?: string | null;
@@ -2673,6 +2700,7 @@ export interface RegistrationVerification {
 export interface SaveRegistrationResponse {
   student_id: number;
   registration_number: string;
+  portal_registration_number?: string | null;
   internship_status: string;
   registration_locked: boolean;
   next_step: "documents";
@@ -2689,6 +2717,7 @@ export interface UploadDocumentsResponse {
 export interface LockRegistrationResponse {
   student_id: number;
   registration_number?: string;
+  portal_registration_number?: string | null;
   registration_locked: boolean;
   payment_status?: string;
   next_step:
@@ -2709,6 +2738,7 @@ export interface CashfreeOrderResponse {
     email?: string | null;
     mobile?: string | null;
     registration_number: string;
+     portal_registration_number?: string | null;
   };
 
   domain: {
@@ -2725,6 +2755,9 @@ export interface CashfreeVerificationResponse {
   order_id: string;
   cf_order_id?: string | number | null;
   transaction_id?: string | null;
+  portal_registration_number?:
+    | string
+    | null;
   order_status?: string;
   payment_status: "paid" | "pending" | "failed";
   internship_status?: string;

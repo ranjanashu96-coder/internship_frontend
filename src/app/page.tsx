@@ -300,7 +300,7 @@ export default function LandingPage() {
 
             <span className="flex items-center gap-2">
               <Phone className="h-3.5 w-3.5 text-cyan-300" />
-              8544233076 
+              9693275424 
             </span>
           </div>
 

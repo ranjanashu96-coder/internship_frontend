@@ -156,6 +156,13 @@ function PaymentStatusContent() {
   );
 
   const [
+  portalRegistrationNumber,
+  setPortalRegistrationNumber,
+] = useState<string | null>(
+  null,
+);
+
+  const [
     receiptLoading,
     setReceiptLoading,
   ] = useState(false);
@@ -190,7 +197,22 @@ function PaymentStatusContent() {
         storedTransactionId,
       );
     }
+
+    const storedPortalRegistrationNumber =
+  sessionStorage.getItem(
+    "portal_registration_number",
+  );
+
+if (
+  storedPortalRegistrationNumber
+) {
+  setPortalRegistrationNumber(
+    storedPortalRegistrationNumber,
+  );
+}
   }, [queryOrderId]);
+
+  
 
   const saveTransactionReference = (
     value:
@@ -250,6 +272,22 @@ function PaymentStatusContent() {
 
         const result =
           responseData.data;
+
+          const returnedPortalRegistrationNumber =
+  result?.portal_registration_number;
+
+if (
+  returnedPortalRegistrationNumber
+) {
+  setPortalRegistrationNumber(
+    returnedPortalRegistrationNumber,
+  );
+
+  sessionStorage.setItem(
+    "portal_registration_number",
+    returnedPortalRegistrationNumber,
+  );
+}
 
         const paymentStatus =
           String(
@@ -518,6 +556,21 @@ function PaymentStatusContent() {
             <p className="mt-2 text-slate-600">
               {message}
             </p>
+            {portalRegistrationNumber && (
+  <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+    <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">
+      RK Nexora Registration Number
+    </p>
+
+    <p className="mt-2 break-all text-2xl font-black tracking-wide text-emerald-950">
+      {portalRegistrationNumber}
+    </p>
+
+    <p className="mt-2 text-xs leading-5 text-emerald-700">
+      Your registration number is now confirmed after successful payment.
+    </p>
+  </div>
+)}
 
             {orderId && (
               <div className="mt-4 rounded-lg bg-slate-100 p-3 text-left">

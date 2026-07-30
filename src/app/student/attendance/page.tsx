@@ -16,6 +16,7 @@ import {
   Filter,
   Hourglass,
   Loader2,
+  Lock,
   LogIn,
   LogOut,
   RefreshCw,
@@ -89,6 +90,60 @@ const getErrorMessage = (
     requestError.message ||
     "Something went wrong."
   );
+};
+
+const isInternshipLockedError = (
+  message: string,
+) => {
+  return (
+    message.includes(
+      "internship has not been started",
+    ) ||
+    message.includes(
+      "internship will start on",
+    )
+  );
+};
+
+const getInternshipStartDate = (
+  message: string,
+) => {
+  const match =
+    message.match(
+      /\d{4}-\d{2}-\d{2}/,
+    );
+
+  return match?.[0] || null;
+};
+
+const formatInternshipDate = (
+  value?: string | null,
+) => {
+  if (!value) {
+    return null;
+  }
+
+  const date =
+    new Date(
+      `${value}T00:00:00`,
+    );
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    },
+  ).format(date);
 };
 
 const toNumber = (
@@ -290,6 +345,63 @@ function ErrorState({
 
           Try Again
         </Button>
+      </div>
+    </div>
+  );
+}
+
+function InternshipLockedState({
+  message,
+}: {
+  message: string;
+}) {
+  const startDate =
+    getInternshipStartDate(
+      message,
+    );
+
+  const formattedDate =
+    formatInternshipDate(
+      startDate,
+    );
+
+  return (
+    <div className="grid min-h-[60vh] place-items-center">
+      <div className="w-full max-w-xl rounded-3xl border border-blue-100 bg-white p-8 text-center shadow-sm">
+
+        <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-blue-50 text-blue-600">
+          <Lock size={34} />
+        </div>
+
+        <h2 className="mt-5 text-2xl font-bold text-slate-900">
+          Internship Not Started
+        </h2>
+
+        {formattedDate ? (
+          <>
+            <p className="mt-3 text-sm text-slate-500">
+              Your internship is scheduled to start on:
+            </p>
+
+            <div className="mt-5 rounded-2xl bg-blue-50 p-5">
+              <p className="text-xs font-semibold uppercase text-blue-600">
+                Internship Start Date
+              </p>
+
+              <p className="mt-2 text-xl font-bold text-slate-900">
+                {formattedDate}
+              </p>
+            </div>
+          </>
+        ) : (
+          <p className="mt-3 text-sm leading-6 text-slate-500">
+            Your internship has not been started by the administrator yet.
+          </p>
+        )}
+
+        <p className="mt-5 text-sm leading-6 text-slate-500">
+            Attendance will automatically become available after your internship starts.
+        </p>
       </div>
     </div>
   );
@@ -795,41 +907,55 @@ export default function StudentAttendancePage() {
   ] = useState("");
 
   const loadAttendance =
-    useCallback(async () => {
-      try {
-        setLoading(true);
-        setError("");
+  useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const response =
-          await studentService.attendance({
-            page,
-            limit: 20,
-            status:
-              statusFilter === "all"
-                ? ""
-                : statusFilter,
-            from_date:
-              fromDate || undefined,
-            to_date:
-              toDate || undefined,
-          });
+      const response =
+        await studentService.attendance({
+          page,
+          limit: 20,
 
-        setData(response.data.data);
-      } catch (requestError) {
-        const message =
-          getErrorMessage(requestError);
+          status:
+            statusFilter === "all"
+              ? ""
+              : statusFilter,
 
-        setError(message);
+          from_date:
+            fromDate || undefined,
+
+          to_date:
+            toDate || undefined,
+        });
+
+      setData(
+        response.data.data,
+      );
+    } catch (requestError) {
+      const message =
+        getErrorMessage(
+          requestError,
+        );
+
+      setError(message);
+
+      if (
+        !isInternshipLockedError(
+          message,
+        )
+      ) {
         toast.error(message);
-      } finally {
-        setLoading(false);
       }
-    }, [
-      page,
-      statusFilter,
-      fromDate,
-      toDate,
-    ]);
+    } finally {
+      setLoading(false);
+    }
+  }, [
+    page,
+    statusFilter,
+    fromDate,
+    toDate,
+  ]);
 
   const loadCalendar =
     useCallback(async () => {
@@ -845,11 +971,20 @@ export default function StudentAttendancePage() {
         setCalendarData(
           response.data.data,
         );
-      } catch (requestError) {
-        toast.error(
-          getErrorMessage(requestError),
-        );
-      } finally {
+     } catch (requestError) {
+  const message =
+    getErrorMessage(
+      requestError,
+    );
+
+  if (
+    !isInternshipLockedError(
+      message,
+    )
+  ) {
+    toast.error(message);
+  }
+} finally {
         setCalendarLoading(false);
       }
     }, [
@@ -923,11 +1058,40 @@ export default function StudentAttendancePage() {
   };
 
   if (
-    loading &&
-    !data
-  ) {
-    return <LoadingState />;
-  }
+  loading &&
+  !data
+) {
+  return <LoadingState />;
+}
+
+if (
+  error &&
+  isInternshipLockedError(
+    error,
+  )
+) {
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Attendance" />
+
+      <InternshipLockedState
+        message={error}
+      />
+    </div>
+  );
+}
+
+if (error && !data) {
+  return (
+    <ErrorState
+      message={error}
+      onRetry={() => {
+        void loadAttendance();
+        void loadCalendar();
+      }}
+    />
+  );
+}
 
   if (error && !data) {
     return (

@@ -16,6 +16,7 @@ import {
   BrainCircuit,
   Trophy,
   Clock3,
+   LockKeyhole,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -64,6 +65,60 @@ const formatDate = (
       timeStyle: "short",
     },
   ).format(date);
+};
+
+const formatInternshipStartDate = (
+  value?: string | null,
+) => {
+  if (!value) {
+    return "Not assigned";
+  }
+
+  const date = new Date(
+    `${String(value).slice(0, 10)}T00:00:00`,
+  );
+
+  if (Number.isNaN(date.getTime())) {
+    return "Not assigned";
+  }
+
+  return new Intl.DateTimeFormat(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    },
+  ).format(date);
+};
+
+
+const getIndiaToday = () => {
+  const parts =
+    new Intl.DateTimeFormat(
+      "en-US",
+      {
+        timeZone:
+          "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      },
+    ).formatToParts(
+      new Date(),
+    );
+
+  const values =
+    Object.fromEntries(
+      parts.map(
+        (part) => [
+          part.type,
+          part.value,
+        ],
+      ),
+    );
+
+  return `${values.year}-${values.month}-${values.day}`;
 };
 
 const getActivityIcon = (
@@ -292,6 +347,43 @@ export default function StudentDashboardPage() {
       ),
     );
 
+    const internshipStartDate =
+  student.internship_start_date
+    ? String(
+        student.internship_start_date,
+      ).slice(0, 10)
+    : null;
+
+const today =
+  getIndiaToday();
+
+const internshipStarted =
+  student.payment_status === "paid" &&
+  Boolean(
+    internshipStartDate,
+  ) &&
+  today >=
+    String(
+      internshipStartDate,
+    ) &&
+  student.internship_status !==
+    "blocked" &&
+  student.internship_status !==
+    "completed";
+
+const internshipDisplayStatus =
+  student.internship_status ===
+  "completed"
+    ? "Completed"
+    : student.internship_status ===
+        "blocked"
+      ? "Blocked"
+      : internshipStarted
+        ? "Active"
+        : internshipStartDate
+          ? "Scheduled"
+          : "Waiting to Start";
+
   return (
     <div className="space-y-6">
       <section className="overflow-hidden rounded-2xl bg-slate-950 p-6 text-white">
@@ -314,23 +406,90 @@ export default function StudentDashboardPage() {
       </p>
     </div>
 
-    <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-      <p className="text-xs uppercase tracking-wide text-slate-400">
-        Internship Status
+    <div className="min-w-[220px] rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+  <p className="text-xs uppercase tracking-wide text-slate-400">
+    Internship Status
+  </p>
+
+  <p
+    className={`mt-1 font-semibold ${
+      internshipStarted
+        ? "text-green-300"
+        : student.internship_status ===
+            "blocked"
+          ? "text-red-300"
+          : "text-amber-300"
+    }`}
+  >
+    {internshipDisplayStatus}
+  </p>
+
+  {internshipStartDate && (
+    <div className="mt-2 border-t border-white/10 pt-2">
+      <p className="text-[11px] uppercase tracking-wide text-slate-400">
+        Start Date
       </p>
 
-      <p className="mt-1 font-semibold capitalize text-green-300">
-        {student.internship_status}
+      <p className="mt-1 text-sm font-medium text-white">
+        {formatInternshipStartDate(
+          internshipStartDate,
+        )}
       </p>
     </div>
+  )}
+</div>
   </div>
 </section>
 
-<AttendanceCheckInCard
-  onAttendanceUpdated={() => {
-    void loadDashboard();
-  }}
-/>
+{internshipStarted ? (
+  <AttendanceCheckInCard
+    onAttendanceUpdated={() => {
+      void loadDashboard();
+    }}
+  />
+) : (
+  <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+      <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white text-amber-600 shadow-sm">
+        <LockKeyhole
+          size={26}
+        />
+      </div>
+
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-amber-600">
+          Attendance Locked
+        </p>
+
+        <h2 className="mt-1 text-lg font-bold text-slate-900">
+          {student.internship_status ===
+          "completed"
+            ? "Internship Completed"
+            : student.internship_status ===
+                "blocked"
+              ? "Internship Access Blocked"
+              : internshipStartDate
+                ? "Your Internship Has Not Started Yet"
+                : "Waiting for Administrator"}
+        </h2>
+
+        <p className="mt-1 text-sm leading-6 text-slate-600">
+          {student.internship_status ===
+          "completed"
+            ? "Attendance check-in is closed because your internship has been completed."
+            : student.internship_status ===
+                "blocked"
+              ? "Your internship access is currently blocked."
+              : internshipStartDate
+                ? `Attendance will automatically become available from ${formatInternshipStartDate(
+                    internshipStartDate,
+                  )}.`
+                : "The administrator has not assigned your internship start date yet."}
+        </p>
+      </div>
+    </div>
+  </section>
+)}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard

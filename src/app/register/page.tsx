@@ -206,6 +206,13 @@ export default function RegistrationPage() {
     );
 
   const [
+  portalRegistrationNumber,
+  setPortalRegistrationNumber,
+] = useState<string | null>(
+  null,
+);
+
+  const [
     files,
     setFiles,
   ] =
@@ -452,6 +459,10 @@ const selectedDomain = useMemo(
 
         const student =
           response.data.data;
+          setPortalRegistrationNumber(
+  student.portal_registration_number ||
+    null,
+);
 
         setVerified(
           student,
@@ -794,6 +805,12 @@ if (
             .registration_locked,
         );
 
+        setPortalRegistrationNumber(
+  response.data.data
+    .portal_registration_number ||
+    null,
+);
+
         toast.success(
           "Registration confirmed and locked",
         );
@@ -839,6 +856,22 @@ if (
       const order =
   response.data.data;
 
+  if (
+  order.student
+    ?.portal_registration_number
+) {
+  setPortalRegistrationNumber(
+    order.student
+      .portal_registration_number,
+  );
+
+  sessionStorage.setItem(
+    "portal_registration_number",
+    order.student
+      .portal_registration_number,
+  );
+}
+
 if (
   !order.payment_session_id
 ) {
@@ -871,11 +904,7 @@ await cashfree.checkout({
     order.payment_session_id,
   redirectTarget: "_self",
 });
-      await cashfree.checkout({
-        paymentSessionId:
-          order.payment_session_id,
-        redirectTarget: "_self",
-      });
+      
     } catch (error) {
       console.error(
         "CASHFREE CHECKOUT ERROR:",
@@ -1136,8 +1165,15 @@ await cashfree.checkout({
                       {verified.name}
                     </p>
                     <p className="mt-0.5 text-sm text-slate-500">
-                      Registration: {verified.registration_number}
-                    </p>
+  College Registration: {verified.registration_number}
+</p>
+
+{verified.portal_registration_number && (
+  <p className="mt-1 text-sm font-bold text-blue-700">
+    RK Nexora Registration:{" "}
+    {verified.portal_registration_number}
+  </p>
+)}
                   </div>
 
                   <span className="ml-auto hidden rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 sm:inline-flex">
@@ -1805,6 +1841,28 @@ await cashfree.checkout({
 
                 <LockKeyhole className="h-8 w-8 text-blue-600" />
               </div>
+
+              {portalRegistrationNumber && (
+  <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+    <div className="flex items-start gap-3">
+      <BadgeCheck className="mt-0.5 h-6 w-6 shrink-0 text-blue-600" />
+
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-blue-600">
+          RK Nexora Registration Number
+        </p>
+
+        <p className="mt-2 text-xl font-black tracking-wide text-[#071a2f]">
+          {portalRegistrationNumber}
+        </p>
+
+        <p className="mt-1 text-xs text-slate-500">
+          This number will be confirmed after successful payment.
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
               <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-7 shadow-lg shadow-blue-900/5">
                 <p className="text-sm text-slate-600">

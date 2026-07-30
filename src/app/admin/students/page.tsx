@@ -94,6 +94,20 @@ export default function StudentsPage() {
   const [loading, setLoading] =
     useState(true);
 
+  const [
+  internshipStartDates,
+  setInternshipStartDates,
+] = useState<Record<number, string>>(
+  {},
+);
+
+const [
+  startingStudentId,
+  setStartingStudentId,
+] = useState<number | null>(
+  null,
+);
+
   const [collegesLoading, setCollegesLoading] =
     useState(true);
 
@@ -224,6 +238,72 @@ export default function StudentsPage() {
     setPage(1);
     setFilters(initialFilters);
   };
+const handleStartInternship =
+  useCallback(
+    async (
+      student:
+        StudentWithRelations,
+    ) => {
+      const startDate =
+        internshipStartDates[
+          student.id
+        ] ||
+        student
+          .internship_start_date ||
+        "";
+
+      if (!startDate) {
+        toast.error(
+          "Please select internship start date",
+        );
+        return;
+      }
+
+      if (
+        student.payment_status !==
+        "paid"
+      ) {
+        toast.error(
+          "Student payment is not completed",
+        );
+        return;
+      }
+
+      try {
+        setStartingStudentId(
+          student.id,
+        );
+
+        const response =
+          await adminService
+            .startStudentInternship(
+              student.id,
+              startDate,
+            );
+
+        toast.success(
+          response.data.message ||
+            "Internship start date saved",
+        );
+
+        await loadStudents();
+      } catch (error: any) {
+        toast.error(
+          error?.response?.data
+            ?.message ??
+            "Unable to start internship",
+        );
+      } finally {
+        setStartingStudentId(
+          null,
+        );
+      }
+    },
+    [
+      internshipStartDates,
+      loadStudents,
+    ],
+  );
 
   const hasFilters =
     filters.search !== "" ||
@@ -366,6 +446,125 @@ export default function StudentsPage() {
           ),
         },
         {
+  id: "internship_start",
+  header: "Start Internship",
+
+  cell: ({ row }) => {
+    const student =
+      row.original;
+
+    if (
+      student.payment_status !==
+      "paid"
+    ) {
+      return (
+        <div className="min-w-48">
+          <p className="text-xs font-medium text-amber-600">
+            Payment pending
+          </p>
+        </div>
+      );
+    }
+
+    if (
+      student.internship_status ===
+      "completed"
+    ) {
+      return (
+        <div className="min-w-48">
+          <Badge tone="green">
+            Completed
+          </Badge>
+        </div>
+      );
+    }
+
+    if (
+      student.internship_status ===
+      "blocked"
+    ) {
+      return (
+        <div className="min-w-48">
+          <Badge tone="red">
+            Blocked
+          </Badge>
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-w-[260px]">
+        <div className="flex items-center gap-2">
+          <Input
+            type="date"
+
+            value={
+              internshipStartDates[
+                student.id
+              ] ||
+              student
+                .internship_start_date ||
+              ""
+            }
+
+            onChange={(event) =>
+              setInternshipStartDates(
+                (current) => ({
+                  ...current,
+
+                  [student.id]:
+                    event.target
+                      .value,
+                }),
+              )
+            }
+
+            className="w-40"
+          />
+
+          <Button
+            type="button"
+            disabled={
+              startingStudentId ===
+              student.id
+            }
+
+            onClick={() =>
+              void handleStartInternship(
+                student,
+              )
+            }
+          >
+            {startingStudentId ===
+            student.id ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving
+              </>
+            ) : student
+                .internship_start_date ? (
+              "Change Date"
+            ) : (
+              "Start"
+            )}
+          </Button>
+        </div>
+
+        {student
+          .internship_start_date && (
+          <p className="mt-1 text-xs text-slate-500">
+            Current:{" "}
+            {
+              student
+                .internship_start_date
+            }
+          </p>
+        )}
+      </div>
+    );
+  },
+},
+        {
           id: "actions",
           header: "Actions",
           cell: ({ row }) => (
@@ -384,7 +583,10 @@ export default function StudentsPage() {
           ),
         },
       ],
-      [router],
+      [router,
+  internshipStartDates,
+  startingStudentId,
+  handleStartInternship,],
     );
 
   return (
