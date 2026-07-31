@@ -9,10 +9,7 @@ import {
   BookOpenCheck,
   Check,
   CheckCircle2,
-  CircleDollarSign,
-  FileCheck2,
   FileText,
-  GraduationCap,
   Loader2,
   LockKeyhole,
   ShieldCheck,
@@ -233,14 +230,7 @@ export default function RegistrationPage() {
     setBusy,
   ] =
     useState(false);
-
-  const [
-    completed,
-    setCompleted,
-  ] =
-    useState(false);
-
-  const [
+const [
     registrationLocked,
     setRegistrationLocked,
   ] =
@@ -710,7 +700,7 @@ if (
        
       ) {
         toast.error(
-          "Photo, identity proof and marksheet are required",
+          "Passport photo and latest semester admit card are required",
         );
         return;
       }
@@ -996,19 +986,16 @@ await cashfree.checkout({
   //     </main>
   //   );
   // }
-
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-50">
-      <div className="absolute inset-x-0 top-0 h-[360px] bg-[#071a2f]" />
-      <div className="absolute inset-x-0 top-0 h-[360px] bg-[radial-gradient(circle_at_15%_20%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_85%_70%,rgba(59,130,246,0.22),transparent_30%)]" />
-
-      <div className="relative z-10 mx-auto max-w-5xl px-4 py-5 sm:px-6 sm:py-8">
-        <header className="flex items-center justify-between">
+    <main className="min-h-screen bg-slate-50">
+      {/* Top navigation */}
+      <div className="bg-[#071a2f]">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <Link
             href="/"
             className="flex items-center gap-3 text-xl font-black text-white"
           >
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-300 to-blue-500 text-[#071a2f] shadow-lg shadow-cyan-400/20">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-300 to-blue-500 text-[#071a2f] shadow-lg shadow-cyan-400/20">
               <Sparkles className="h-5 w-5" />
             </span>
 
@@ -1019,144 +1006,246 @@ await cashfree.checkout({
 
           <Link
             href="/login"
-            className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
           >
             <ArrowLeft className="h-4 w-4" />
-            Login
+            Login / लॉगिन
           </Link>
-        </header>
+        </div>
+      </div>
 
-        <section className="pb-8 pt-12 text-center text-white sm:pt-16">
-          <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-white/10 text-cyan-300 backdrop-blur">
-            <GraduationCap className="h-7 w-7" />
-          </div>
-
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
-            Student Onboarding
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+        {/* Page heading */}
+        <div className="mb-5">
+          <p className="text-sm font-bold text-blue-600">
+            Student Internship Registration
           </p>
 
-          <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-5xl">
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
             Complete Your Registration
           </h1>
 
-          <p className="mx-auto mt-4 max-w-2xl leading-7 text-white/65">
-            Verify your Regitraition Number (as printed on your College Admit Card),complete your
-            profile, select an internship domain, and begin your internship journey with RK Nexora.
+          <p className="mt-1 text-sm font-semibold text-blue-700">
+            अपना इंटर्नशिप पंजीकरण पूरा करें
           </p>
-        </section>
 
-        <section className="mb-6 rounded-[1.75rem] border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/10 sm:p-6">
-          <div className="grid grid-cols-6 gap-2 sm:gap-4">
-            {steps.map((name, index) => {
-              const active = index <= step;
-              const current = index === step;
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+            Verify your college record, complete your details, choose an
+            internship domain, upload the required documents and complete
+            payment.
+          </p>
 
-              return (
-                <div key={name} className="min-w-0 text-center">
-                  <div className="flex items-center">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
+            कॉलेज रिकॉर्ड सत्यापित करें, विवरण पूरा करें, इंटर्नशिप डोमेन चुनें,
+            आवश्यक दस्तावेज़ अपलोड करें और भुगतान पूरा करें।
+          </p>
+        </div>
+
+        {/* Main registration card */}
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          {/* Step progress */}
+          <div className="border-b border-slate-200 bg-slate-50 px-4 py-4 sm:px-6">
+            <div className="grid grid-cols-6 gap-1 sm:gap-3">
+              {steps.map((name, index) => {
+                const active = index <= step;
+                const completedStep = index < step;
+
+                const hindiLabels = [
+                  "सत्यापन",
+                  "विवरण",
+                  "डोमेन",
+                  "दस्तावेज़",
+                  "जाँच",
+                  "भुगतान",
+                ];
+
+                return (
+                  <div
+                    key={name}
+                    className="flex min-w-0 flex-col items-center text-center"
+                  >
                     <div
-                      className={`mx-auto grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-black transition sm:h-10 sm:w-10 ${
+                      className={`grid h-8 w-8 place-items-center rounded-full text-xs font-bold transition ${
                         active
                           ? "bg-[#071a2f] text-white"
-                          : "bg-slate-100 text-slate-400"
-                      } ${current ? "ring-4 ring-cyan-100" : ""}`}
+                          : "bg-slate-200 text-slate-500"
+                      }`}
                     >
-                      {index < step ? (
+                      {completedStep ? (
                         <Check className="h-4 w-4" />
                       ) : (
                         index + 1
                       )}
                     </div>
-                  </div>
 
-                  <p
-                    className={`mt-2 hidden truncate text-xs font-bold sm:block ${
-                      active ? "text-[#071a2f]" : "text-slate-400"
-                    }`}
-                  >
-                    {name}
+                    <p
+                      className={`mt-1.5 hidden text-[11px] font-bold sm:block ${
+                        active ? "text-slate-900" : "text-slate-400"
+                      }`}
+                    >
+                      {name}
+                    </p>
+
+                    <p
+                      className={`hidden text-[10px] sm:block ${
+                        active ? "text-blue-600" : "text-slate-300"
+                      }`}
+                    >
+                      {hindiLabels[index]}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-500"
+                style={{
+                  width: `${((step + 1) / steps.length) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* STEP 1 - VERIFY */}
+          {step === 0 && (
+            <div className="grid lg:grid-cols-[0.92fr_1.08fr]">
+              <div className="bg-[#071a2f] p-6 text-white sm:p-8">
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-white/10 text-cyan-300">
+                  <UserRoundCheck className="h-5 w-5" />
+                </div>
+
+                <p className="mt-5 text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
+                  Step 1 of 6
+                </p>
+
+                <h2 className="mt-2 text-2xl font-black">
+                  Verify Your Student Record
+                </h2>
+
+                <p className="mt-1 text-sm font-semibold text-cyan-200">
+                  अपना छात्र रिकॉर्ड सत्यापित करें
+                </p>
+
+                <p className="mt-3 text-sm leading-6 text-white/70">
+                  Enter the Registration Number printed on your
+                  University/College Admit Card.
+                </p>
+
+                <p className="mt-1 text-sm leading-6 text-white/55">
+                  अपने University/College Admit Card पर दिया गया Registration
+                  Number दर्ज करें।
+                </p>
+
+                <div className="mt-6 space-y-3">
+                  <InfoCheck>
+                    Use your official University/College Registration Number.
+                  </InfoCheck>
+
+                  <InfoCheck>
+                    Do not enter Roll Number, Mobile Number or RK Nexora
+                    Registration Number.
+                  </InfoCheck>
+
+                  <InfoCheck>
+                    Your record will be matched securely with the data provided
+                    by your college.
+                  </InfoCheck>
+                </div>
+
+                <div className="mt-6 rounded-xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs leading-5 text-white/70">
+                    <strong className="text-white">ध्यान दें:</strong> Roll
+                    Number, Mobile Number या RK Nexora Registration Number दर्ज
+                    न करें।
                   </p>
                 </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-500"
-              style={{ width: `${((step + 1) / steps.length) * 100}%` }}
-            />
-          </div>
-        </section>
-
-       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.28)] sm:p-8">
-          {step === 0 && (
-            <>
-              <div className="mx-auto max-w-2xl text-center">
-  <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-blue-50 text-blue-600">
-    <UserRoundCheck className="h-7 w-7" />
-  </div>
-  <h2 className="text-2xl font-black tracking-tight text-[#071a2f]">
-    Verify Registration Number
-
-  </h2>
-</div>
-
-              <p className="mx-auto mb-7 mt-2 max-w-xl text-center text-sm leading-6 text-slate-500">
-                Please enter the Registration Number exactly as printed on your University Admit Card to verify your internship registration.
-इंटर्नशिप पंजीकरण सत्यापित करने के लिए कृपया अपने विश्वविद्यालय के Admit Card पर अंकित Registration Number को बिल्कुल उसी प्रकार दर्ज करें।
-              </p>
-
-              <label className="label">
-                Registration Number
-              </label>
-
-              <Input
-                {...register(
-                  "registration_number",
-                )}
-                placeholder="e.g. RKN20260001"
-              />
-
-              <FormError
-                text={
-                  errors
-                    .registration_number
-                    ?.message
-                }
-              />
-
-              <Button
-                className="mt-6 h-12 rounded-xl bg-[#071a2f] px-6 hover:bg-[#0b294b]"
-                onClick={verify}
-                disabled={busy}
-              >
-                {busy && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-
-                Verify & Continue
-              </Button>
-            </>
-          )}
-
-          {step === 1 && (
-            <div className="mx-auto max-w-4xl rounded-[1.75rem] bg-white">
-              <div className="mb-8 border-b border-slate-100 pb-6">
-                <p className="inline-flex rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-blue-700">
-                  Step 2 of 6
-                </p>
-                <h2 className="mt-4 text-2xl font-black tracking-tight text-[#071a2f] sm:text-3xl">
-                  Academic & Account Details
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                 अपनी रुचि के अनुसार कोई भी इंटर्नशिप डोमेन चुनें। सभी पाठ्यक्रमों एवं सभी स्ट्रीम के विद्यार्थी किसी भी उपलब्ध डोमेन का चयन कर सकते हैं। आपके प्रशिक्षण की रूपरेखा चयनित डोमेन के अनुसार निर्धारित होगी।                                           Choose any internship domain based on your interests and career goals. Students from all courses and streams are eligible to select any available internship domain. Your learning modules, internship duration, and training plan will be based on your selected domain.
-                </p>
               </div>
 
+              <div className="flex items-center p-6 sm:p-8 lg:p-10">
+                <div className="w-full">
+                  <p className="text-sm font-bold text-blue-600">
+                    Registration Verification
+                  </p>
+
+                  <h3 className="mt-1 text-2xl font-black text-[#071a2f]">
+                    Enter Registration Number
+                  </h3>
+
+                  <p className="mt-1 text-sm font-semibold text-blue-700">
+                    Registration Number दर्ज करें
+                  </p>
+
+                  <p className="mt-3 text-sm leading-6 text-slate-500">
+                    We will find your student record and continue from the last
+                    saved registration step.
+                  </p>
+
+                  <p className="mt-1 text-sm leading-6 text-slate-400">
+                    हम आपका छात्र रिकॉर्ड खोजकर पंजीकरण की पिछली स्थिति से आगे
+                    बढ़ेंगे।
+                  </p>
+
+                  <div className="mt-6">
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      Registration Number
+                      <span className="ml-1 text-red-500">*</span>
+                    </label>
+
+                    <Input
+                      {...register("registration_number")}
+                      className="h-12 rounded-xl border-slate-300 bg-white px-4 text-base font-semibold uppercase"
+                      placeholder="e.g. 24392097661"
+                      autoComplete="off"
+                    />
+
+                    <FormError
+                      text={errors.registration_number?.message}
+                    />
+                  </div>
+
+                  <Button
+                    className="mt-4 h-12 w-full rounded-xl bg-[#071a2f] font-bold hover:bg-[#0b294b]"
+                    onClick={verify}
+                    disabled={busy}
+                  >
+                    {busy ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      <>
+                        Verify & Continue / सत्यापित करें
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-400">
+                    <LockKeyhole className="h-3.5 w-3.5" />
+                    Secure Student Verification / सुरक्षित सत्यापन
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2 - DETAILS */}
+          {step === 1 && (
+            <div className="mx-auto max-w-5xl p-5 sm:p-7">
+              <StepIntro
+                step="Step 2 of 6"
+                title="Academic & Account Details"
+                hindiTitle="शैक्षणिक एवं खाता विवरण"
+                description="Review your academic information and provide an active mobile number, email address and login credentials."
+                hindiDescription="अपनी शैक्षणिक जानकारी की जाँच करें तथा सक्रिय मोबाइल नंबर, ईमेल और लॉगिन विवरण दर्ज करें।"
+              />
+
               {verified && (
-                <div className="mb-7 flex items-center gap-4 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-blue-600 shadow-sm">
+                <div className="mb-6 flex items-center gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-emerald-600 shadow-sm">
                     <UserRoundCheck className="h-5 w-5" />
                   </div>
 
@@ -1164,141 +1253,161 @@ await cashfree.checkout({
                     <p className="truncate font-bold text-[#071a2f]">
                       {verified.name}
                     </p>
-                    <p className="mt-0.5 text-sm text-slate-500">
-  College Registration: {verified.registration_number}
-</p>
 
-{verified.portal_registration_number && (
-  <p className="mt-1 text-sm font-bold text-blue-700">
-    RK Nexora Registration:{" "}
-    {verified.portal_registration_number}
-  </p>
-)}
+                    <p className="mt-0.5 text-sm text-slate-500">
+                      College Registration: {verified.registration_number}
+                    </p>
+
+                    {verified.portal_registration_number && (
+                      <p className="mt-1 text-sm font-bold text-blue-700">
+                        RK Nexora Registration:{" "}
+                        {verified.portal_registration_number}
+                      </p>
+                    )}
                   </div>
 
                   <span className="ml-auto hidden rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 sm:inline-flex">
-                    Verified
+                    Verified / सत्यापित
                   </span>
                 </div>
               )}
 
-              <div className="space-y-6">
-                <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm sm:p-6">
-                  <div className="mb-5">
-                    <h3 className="font-black text-[#071a2f]">
-                      Academic information
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Details must match your college record.
-                    </p>
-                  </div>
-
+              <div className="space-y-5">
+                <FormSection
+                  title="Academic Information"
+                  hindiTitle="शैक्षणिक जानकारी"
+                  description="Review the information and keep it consistent with your college record."
+                  hindiDescription="जानकारी की जाँच करें और इसे अपने कॉलेज रिकॉर्ड के अनुसार रखें।"
+                >
                   <div className="grid gap-5 sm:grid-cols-2">
-                    <Field label="Father Name" error={errors.father_name?.message}>
+                    <Field
+                      label="Father Name / पिता का नाम"
+                      error={errors.father_name?.message}
+                    >
                       <Input
-                        className="h-12 rounded-xl border-slate-200 bg-white px-4 shadow-sm transition focus-visible:ring-4 focus-visible:ring-blue-500/10"
+                        className="h-12 rounded-xl border-slate-200 bg-white px-4"
                         placeholder="Enter father name"
                         {...register("father_name")}
                       />
                     </Field>
 
-                    <Field label="Gender" error={errors.gender?.message}>
+                    <Field
+                      label="Gender / लिंग"
+                      error={errors.gender?.message}
+                    >
                       <select
-                        className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                        className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
                         {...register("gender")}
                       >
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
+                        <option value="male">Male / पुरुष</option>
+                        <option value="female">Female / महिला</option>
+                        <option value="other">Other / अन्य</option>
                       </select>
                     </Field>
 
-                    <Field label="Date of Birth" error={errors.dob?.message}>
+                    <Field
+                      label="Date of Birth / जन्म तिथि"
+                      error={errors.dob?.message}
+                    >
                       <Input
-                        className="h-12 rounded-xl border-slate-200 bg-white px-4 shadow-sm transition focus-visible:ring-4 focus-visible:ring-blue-500/10"
+                        className="h-12 rounded-xl border-slate-200 bg-white px-4"
                         type="date"
                         {...register("dob")}
                       />
                     </Field>
 
-                    <Field label="Programme" error={errors.programme?.message}>
+                    <Field
+                      label="Programme / पाठ्यक्रम"
+                      error={errors.programme?.message}
+                    >
                       <Input
-                        className="h-12 rounded-xl border-slate-200 bg-white px-4 shadow-sm transition focus-visible:ring-4 focus-visible:ring-blue-500/10"
-                        placeholder="e.g. BCA, B.Sc, B.Com"
+                        className="h-12 rounded-xl border-slate-200 bg-white px-4"
+                        placeholder="e.g. B.A., B.Sc, B.Com"
                         {...register("programme")}
                       />
                     </Field>
 
                     <Field
-                      label="Major Subject"
+                      label="Major Subject / मुख्य विषय"
                       error={errors.major_subject?.message}
                     >
                       <Input
-                        className="h-12 rounded-xl border-slate-200 bg-white px-4 shadow-sm transition focus-visible:ring-4 focus-visible:ring-blue-500/10"
+                        className="h-12 rounded-xl border-slate-200 bg-white px-4"
                         placeholder="Enter major subject"
                         {...register("major_subject")}
                       />
                     </Field>
 
-                   <Field label="Session" error={errors.session?.message}>
-  <select
-    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-    {...register("session")}
-  >
-    <option value="">Select Session</option>
+                    <Field
+                      label="Session / सत्र"
+                      error={errors.session?.message}
+                    >
+                      <select
+                        className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                        {...register("session")}
+                      >
+                        <option value="">Select Session / सत्र चुनें</option>
+                        <option value="2023-27">2023-27</option>
+                        <option value="2024-28">2024-28</option>
+                      </select>
+                    </Field>
 
-    <option value="2024-27">2023-27</option>
-    <option value="2025-28">2024-28</option>
-
-  </select>
-</Field>
-
-                   <Field label="Semester" error={errors.semester?.message}>
-  <select
-    className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-    {...register("semester")}
-  >
-    <option value="">Select Semester</option>
-    <option value="5">Semester 4</option>
-    <option value="5">Semester 5</option>
-    
-  </select>
-</Field>
+                    <Field
+                      label="Semester / सेमेस्टर"
+                      error={errors.semester?.message}
+                    >
+                      <select
+                        className="h-12 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+                        {...register("semester")}
+                      >
+                        <option value="">
+                          Select Semester / सेमेस्टर चुनें
+                        </option>
+                        <option value="4">Semester 4</option>
+                        <option value="5">Semester 5</option>
+                      
+                      </select>
+                    </Field>
                   </div>
-                </div>
+                </FormSection>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_12px_35px_-20px_rgba(15,23,42,0.35)] sm:p-6">
-                  <div className="mb-5">
-                    <h3 className="font-black text-[#071a2f]">
-                      Contact & login credentials
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Use an active mobile number and email address.
-                    </p>
-                  </div>
-
+                <FormSection
+                  title="Contact & Login Credentials"
+                  hindiTitle="संपर्क एवं लॉगिन विवरण"
+                  description="Use an active mobile number and email. Create credentials that you will use to login."
+                  hindiDescription="सक्रिय मोबाइल नंबर और ईमेल दर्ज करें। यही Username और Password आगे लॉगिन करने के लिए उपयोग होंगे।"
+                >
                   <div className="grid gap-5 sm:grid-cols-2">
-                    <Field label="Mobile Number" error={errors.mobile?.message}>
+                    <Field
+                      label="Mobile Number / मोबाइल नंबर"
+                      error={errors.mobile?.message}
+                    >
                       <Input
-                        className="h-12 rounded-xl px-4 shadow-sm transition focus-visible:ring-4 focus-visible:ring-blue-500/10"
+                        className="h-12 rounded-xl px-4"
                         inputMode="numeric"
                         placeholder="10-digit mobile number"
                         {...register("mobile")}
                       />
                     </Field>
 
-                    <Field label="Email Address" error={errors.email?.message}>
+                    <Field
+                      label="Email Address / ईमेल"
+                      error={errors.email?.message}
+                    >
                       <Input
-                        className="h-12 rounded-xl px-4 shadow-sm transition focus-visible:ring-4 focus-visible:ring-blue-500/10"
+                        className="h-12 rounded-xl px-4"
                         type="email"
                         placeholder="name@example.com"
                         {...register("email")}
                       />
                     </Field>
 
-                    <Field label="Username" error={errors.username?.message}>
+                    <Field
+                      label="Username / यूज़रनेम"
+                      error={errors.username?.message}
+                    >
                       <Input
-                        className="h-12 rounded-xl px-4 shadow-sm transition focus-visible:ring-4 focus-visible:ring-blue-500/10"
+                        className="h-12 rounded-xl px-4"
                         autoComplete="username"
                         placeholder="Create username"
                         {...register("username")}
@@ -1307,9 +1416,12 @@ await cashfree.checkout({
 
                     <div className="hidden sm:block" />
 
-                    <Field label="Password" error={errors.password?.message}>
+                    <Field
+                      label="Password / पासवर्ड"
+                      error={errors.password?.message}
+                    >
                       <Input
-                        className="h-12 rounded-xl px-4 shadow-sm transition focus-visible:ring-4 focus-visible:ring-blue-500/10"
+                        className="h-12 rounded-xl px-4"
                         type="password"
                         autoComplete="new-password"
                         placeholder="Minimum 8 characters"
@@ -1318,11 +1430,11 @@ await cashfree.checkout({
                     </Field>
 
                     <Field
-                      label="Confirm Password"
+                      label="Confirm Password / पासवर्ड की पुष्टि"
                       error={errors.confirm_password?.message}
                     >
                       <Input
-                        className="h-12 rounded-xl px-4 shadow-sm transition focus-visible:ring-4 focus-visible:ring-blue-500/10"
+                        className="h-12 rounded-xl px-4"
                         type="password"
                         autoComplete="new-password"
                         placeholder="Re-enter password"
@@ -1330,47 +1442,43 @@ await cashfree.checkout({
                       />
                     </Field>
                   </div>
-                </div>
+                </FormSection>
               </div>
 
-              <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-between">
+              <div className="mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-between">
                 <Button
-                  className="h-12 rounded-xl px-6"
+                  className="h-11 rounded-xl px-6"
                   variant="secondary"
                   onClick={() => setStep(0)}
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
+                  Back / वापस
                 </Button>
 
                 <Button
-                  className="h-12 rounded-xl bg-[#071a2f] px-6 hover:bg-[#0b294b]"
+                  className="h-11 rounded-xl bg-[#071a2f] px-6 hover:bg-[#0b294b]"
                   onClick={goToDomain}
                 >
-                  Continue to Domain
+                  Continue to Domain / डोमेन चुनें
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>
           )}
 
+          {/* STEP 3 - DOMAIN */}
           {step === 2 && (
-            <div className="mx-auto max-w-4xl rounded-[1.75rem] bg-white">
-              <div className="mb-8 border-b border-slate-100 pb-6">
-                <p className="inline-flex rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-blue-700">
-                  Step 3 of 6
-                </p>
-                <h2 className="mt-4 text-2xl font-black tracking-tight text-[#071a2f] sm:text-3xl">
-                  Select Internship Domain
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Choose one domain carefully. Your learning modules, duration
-                  and payment amount will be based on this selection.
-                </p>
-              </div>
+            <div className="mx-auto max-w-5xl p-5 sm:p-7">
+              <StepIntro
+                step="Step 3 of 6"
+                title="Select Internship Domain"
+                hindiTitle="इंटर्नशिप डोमेन चुनें"
+                description="Choose an internship domain based on your interests and career goals. Students from any course or stream may select any available domain."
+                hindiDescription="अपनी रुचि और करियर लक्ष्य के अनुसार कोई भी उपलब्ध इंटर्नशिप डोमेन चुनें। किसी भी पाठ्यक्रम या स्ट्रीम के विद्यार्थी उपलब्ध डोमेन में से चयन कर सकते हैं।"
+              />
 
-              <div className="rounded-[1.5rem] border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-3 shadow-inner sm:p-4">
-                <div className="space-y-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                <div className="grid gap-3 lg:grid-cols-2">
                   {domains.map((domain) => {
                     const isSelected =
                       Number(selectedDomainId) === Number(domain.id);
@@ -1378,10 +1486,10 @@ await cashfree.checkout({
                     return (
                       <label
                         key={domain.id}
-                        className={`group relative flex cursor-pointer items-center gap-4 overflow-hidden rounded-2xl border bg-white p-4 transition-all duration-200 sm:p-5 ${
+                        className={`group relative flex cursor-pointer items-center gap-4 rounded-2xl border bg-white p-4 transition ${
                           isSelected
-                            ? "border-blue-500 bg-blue-50/70 shadow-lg shadow-blue-900/5 ring-2 ring-blue-500/10"
-                            : "border-slate-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
+                            ? "border-blue-500 bg-blue-50/60 shadow-sm ring-2 ring-blue-500/10"
+                            : "border-slate-200 hover:border-blue-300"
                         }`}
                       >
                         <input
@@ -1408,33 +1516,35 @@ await cashfree.checkout({
                             {domain.domain_name}
                           </p>
 
-                          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
-                            <span>{domain.duration_hours} learning hours</span>
-                            <span className="hidden h-1 w-1 rounded-full bg-slate-300 sm:block" />
-                            <span>Certificate included</span>
-                          </div>
+                          <p className="mt-1 text-xs leading-5 text-slate-500">
+                            {domain.duration_hours} Learning Hours / प्रशिक्षण
+                            घंटे
+                          </p>
+
+                          <p className="text-xs leading-5 text-slate-400">
+                            Certificate Included / प्रमाणपत्र शामिल
+                          </p>
                         </div>
 
-                        <div className="flex shrink-0 items-center gap-3">
-                          <div className="text-right">
-                            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                              Fee
-                            </p>
-                            <p className="font-black text-[#071a2f]">
-                              ₹{domain.fee}
-                            </p>
-                          </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-[10px] font-bold uppercase text-slate-400">
+                            Fee / शुल्क
+                          </p>
 
-                          <span
-                            className={`grid h-6 w-6 place-items-center rounded-full border-2 ${
-                              isSelected
-                                ? "border-blue-600 bg-blue-600 text-white"
-                                : "border-slate-300 bg-white"
-                            }`}
-                          >
-                            {isSelected && <Check className="h-3.5 w-3.5" />}
-                          </span>
+                          <p className="font-black text-[#071a2f]">
+                            ₹{domain.fee}
+                          </p>
                         </div>
+
+                        <span
+                          className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 ${
+                            isSelected
+                              ? "border-blue-600 bg-blue-600 text-white"
+                              : "border-slate-300 bg-white"
+                          }`}
+                        >
+                          {isSelected && <Check className="h-3.5 w-3.5" />}
+                        </span>
                       </label>
                     );
                   })}
@@ -1444,11 +1554,12 @@ await cashfree.checkout({
               <FormError text={errors.domain_id?.message} />
 
               {selectedDomain && (
-                <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-cyan-50 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">
-                      Selected Domain
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">
+                      Selected Domain / चयनित डोमेन
                     </p>
+
                     <p className="mt-1 font-black text-emerald-950">
                       {selectedDomain.domain_name}
                     </p>
@@ -1456,13 +1567,14 @@ await cashfree.checkout({
 
                   <div className="flex gap-6 text-sm">
                     <div>
-                      <p className="text-emerald-700">Duration</p>
+                      <p className="text-emerald-700">Duration / अवधि</p>
                       <p className="font-bold text-emerald-950">
                         {selectedDomain.duration_hours} hours
                       </p>
                     </div>
+
                     <div>
-                      <p className="text-emerald-700">Payable</p>
+                      <p className="text-emerald-700">Payable Fee / शुल्क</p>
                       <p className="font-bold text-emerald-950">
                         ₹{selectedDomain.fee}
                       </p>
@@ -1471,18 +1583,18 @@ await cashfree.checkout({
                 </div>
               )}
 
-              <div className="mt-8 flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-between">
+              <div className="mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-between">
                 <Button
-                  className="h-12 rounded-xl px-6"
+                  className="h-11 rounded-xl px-6"
                   variant="secondary"
                   onClick={() => setStep(1)}
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
+                  Back / वापस
                 </Button>
 
                 <Button
-                  className="h-12 rounded-xl bg-[#071a2f] px-6 hover:bg-[#0b294b]"
+                  className="h-11 rounded-xl bg-[#071a2f] px-6 hover:bg-[#0b294b]"
                   onClick={saveDetails}
                   disabled={busy}
                 >
@@ -1493,7 +1605,7 @@ await cashfree.checkout({
                     </>
                   ) : (
                     <>
-                      Save & Continue
+                      Save & Continue / सेव करें
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}
@@ -1502,310 +1614,251 @@ await cashfree.checkout({
             </div>
           )}
 
+          {/* STEP 4 - DOCUMENTS */}
           {step === 3 && (
-            <>
-              <h2 className="text-2xl font-black tracking-tight text-[#071a2f]">
-                Upload Documents
-              </h2>
+            <div className="mx-auto max-w-4xl p-5 sm:p-7">
+              <StepIntro
+                step="Step 4 of 6"
+                title="Upload Required Documents"
+                hindiTitle="आवश्यक दस्तावेज़ अपलोड करें"
+                description="Upload a clear passport-size photograph and your latest semester admit card."
+                hindiDescription="अपना साफ पासपोर्ट आकार का फोटो और नवीनतम सेमेस्टर का Admit Card अपलोड करें।"
+              />
 
-              <div className="mt-7 grid gap-4">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex gap-3">
+                  <FileText className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+
+                  <div>
+                    <p className="text-sm font-bold text-amber-900">
+                      Document Guidelines / दस्तावेज़ निर्देश
+                    </p>
+
+                    <p className="mt-1 text-sm leading-6 text-amber-800">
+                      Upload clear and readable files. Your photo should clearly
+                      show your face and the admit card details must be readable.
+                    </p>
+
+                    <p className="mt-1 text-sm leading-6 text-amber-700">
+                      सभी दस्तावेज़ साफ और पढ़ने योग्य होने चाहिए। फोटो में चेहरा
+                      और Admit Card की जानकारी स्पष्ट दिखाई देनी चाहिए।
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-4">
                 <FileField
-                  label="Passport Photo"
+                  label="Passport Photo / पासपोर्ट फोटो"
                   accept="image/png,image/jpeg"
-                  existingFile={
-                    savedDocuments.photo
-                  }
-                  selectedFile={
-                    files.photo
-                  }
-                  onChange={(
-                    file,
-                  ) =>
-                    setFiles(
-                      (
-                        current,
-                      ) => ({
-                        ...current,
-                        photo:
-                          file,
-                      }),
-                    )
+                  existingFile={savedDocuments.photo}
+                  selectedFile={files.photo}
+                  onChange={(file) =>
+                    setFiles((current) => ({
+                      ...current,
+                      photo: file,
+                    }))
                   }
                 />
 
                 <FileField
-                  label="Last Semester Admit Card"
+                  label="Latest Semester Admit Card / नवीनतम सेमेस्टर Admit Card"
                   accept="application/pdf,image/png,image/jpeg"
-                  existingFile={
-                    savedDocuments.identity_document
-                  }
-                  selectedFile={
-                    files.identity_document
-                  }
-                  onChange={(
-                    file,
-                  ) =>
-                    setFiles(
-                      (
-                        current,
-                      ) => ({
-                        ...current,
-                        identity_document:
-                          file,
-                      }),
-                    )
+                  existingFile={savedDocuments.identity_document}
+                  selectedFile={files.identity_document}
+                  onChange={(file) =>
+                    setFiles((current) => ({
+                      ...current,
+                      identity_document: file,
+                    }))
                   }
                 />
-
-                {/* <FileField
-                  label="Latest Marksheet"
-                  accept="application/pdf,image/png,image/jpeg"
-                  existingFile={
-                    savedDocuments.marksheet
-                  }
-                  selectedFile={
-                    files.marksheet
-                  }
-                  onChange={(
-                    file,
-                  ) =>
-                    setFiles(
-                      (
-                        current,
-                      ) => ({
-                        ...current,
-                        marksheet:
-                          file,
-                      }),
-                    )
-                  }
-                /> */}
               </div>
 
-              <div className="mt-6 flex justify-between">
+              <div className="mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-between">
                 <Button
-                  className="rounded-xl"
+                  className="h-11 rounded-xl px-6"
                   variant="secondary"
-                  onClick={() =>
-                    setStep(
-                      2,
-                    )
-                  }
+                  onClick={() => setStep(2)}
                 >
-                  Back
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back / वापस
                 </Button>
 
                 <Button
-                  className="rounded-xl bg-[#071a2f] hover:bg-[#0b294b]"
-                  onClick={
-                    uploadDocuments
-                  }
-                  disabled={
-                    busy
-                  }
+                  className="h-11 rounded-xl bg-[#071a2f] px-6 hover:bg-[#0b294b]"
+                  onClick={uploadDocuments}
+                  disabled={busy}
                 >
-                  {busy
-                    ? "Uploading..."
-                    : "Upload & Review"}
+                  {busy ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      Upload & Review / अपलोड करके जाँचें
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </div>
-            </>
+            </div>
           )}
 
+          {/* STEP 5 - REVIEW */}
           {step === 4 && (
-            <>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight text-[#071a2f]">
-                    Review Registration
-                  </h2>
+            <div className="mx-auto max-w-5xl p-5 sm:p-7">
+              <StepIntro
+                step="Step 5 of 6"
+                title="Review Your Registration"
+                hindiTitle="अपने पंजीकरण की जाँच करें"
+                description="Carefully review all information before confirming. After confirmation, your details and uploaded documents will be locked."
+                hindiDescription="पुष्टि करने से पहले सभी जानकारी ध्यान से जाँच लें। पुष्टि के बाद विवरण और अपलोड किए गए दस्तावेज़ लॉक हो जाएंगे।"
+              />
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    Verify all details
-                    before proceeding to
-                    payment.
-                  </p>
-                </div>
-
-                <FileCheck2 className="h-8 w-8 text-blue-600" />
-              </div>
-
-              <div className="mt-6 grid gap-4 rounded-[1.5rem] border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 sm:grid-cols-2 sm:p-5">
-                <ReviewItem
-                  label="Name"
-                  value={
-                    verified?.name
-                  }
-                />
+              <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                <ReviewItem label="Name / नाम" value={verified?.name} />
 
                 <ReviewItem
                   label="Registration Number"
-                  value={getValues(
-                    "registration_number",
-                  )}
+                  value={getValues("registration_number")}
                 />
 
                 <ReviewItem
-                  label="Father Name"
-                  value={getValues(
-                    "father_name",
-                  )}
+                  label="Father Name / पिता का नाम"
+                  value={getValues("father_name")}
                 />
 
                 <ReviewItem
-                  label="Gender"
-                  value={getValues(
-                    "gender",
-                  )}
+                  label="Gender / लिंग"
+                  value={getValues("gender")}
                 />
 
                 <ReviewItem
-                  label="Date of Birth"
-                  value={getValues(
-                    "dob",
-                  )}
+                  label="Date of Birth / जन्म तिथि"
+                  value={getValues("dob")}
                 />
 
                 <ReviewItem
-                  label="Programme"
-                  value={getValues(
-                    "programme",
-                  )}
+                  label="Programme / पाठ्यक्रम"
+                  value={getValues("programme")}
                 />
 
                 <ReviewItem
-                  label="Major Subject"
-                  value={getValues(
-                    "major_subject",
-                  )}
+                  label="Major Subject / मुख्य विषय"
+                  value={getValues("major_subject")}
                 />
 
                 <ReviewItem
-                  label="Session"
-                  value={getValues(
-                    "session",
-                  )}
+                  label="Session / सत्र"
+                  value={getValues("session")}
                 />
 
                 <ReviewItem
-                  label="Semester"
-                  value={getValues(
-                    "semester",
-                  )}
+                  label="Semester / सेमेस्टर"
+                  value={getValues("semester")}
                 />
 
                 <ReviewItem
-                  label="Mobile"
-                  value={getValues(
-                    "mobile",
-                  )}
+                  label="Mobile / मोबाइल"
+                  value={getValues("mobile")}
                 />
 
                 <ReviewItem
-                  label="Email"
-                  value={getValues(
-                    "email",
-                  )}
+                  label="Email / ईमेल"
+                  value={getValues("email")}
                 />
 
                 <ReviewItem
-                  label="Username"
-                  value={getValues(
-                    "username",
-                  )}
+                  label="Username / यूज़रनेम"
+                  value={getValues("username")}
                 />
 
                 <ReviewItem
-                  label="Domain"
-                  value={
-                    selectedDomain?.domain_name
-                  }
+                  label="Domain / डोमेन"
+                  value={selectedDomain?.domain_name}
                 />
 
                 <ReviewItem
-                  label="Fee"
-                  value={
-                    selectedDomain
-                      ? `₹${selectedDomain.fee}`
-                      : "-"
-                  }
+                  label="Fee / शुल्क"
+                  value={selectedDomain ? `₹${selectedDomain.fee}` : "-"}
                 />
               </div>
 
               <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h3 className="font-semibold">
-                  Uploaded Documents
+                <h3 className="font-bold text-[#071a2f]">
+                  Uploaded Documents / अपलोड किए गए दस्तावेज़
                 </h3>
 
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <DocumentStatus
-                    label="Passport Photo"
-                    available={hasDocument(
-                      "photo",
-                    )}
+                    label="Passport Photo / पासपोर्ट फोटो"
+                    available={hasDocument("photo")}
                   />
 
                   <DocumentStatus
-                    label="Identity Proof"
-                    available={hasDocument(
-                      "identity_document",
-                    )}
+                    label="Latest Semester Admit Card / Admit Card"
+                    available={hasDocument("identity_document")}
                   />
-
-                 
                 </div>
               </div>
 
               {!registrationLocked && (
-                <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-                  After clicking
-                  Proceed to Payment,
-                  registration details
-                  and documents cannot
-                  be edited.
+                <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-start gap-3">
+                    <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+
+                    <div>
+                      <p className="text-sm font-bold text-amber-900">
+                        Please Review Carefully / कृपया ध्यान से जाँच करें
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6 text-amber-800">
+                        After you proceed to payment, registration details and
+                        documents cannot be edited.
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6 text-amber-700">
+                        भुगतान के लिए आगे बढ़ने के बाद पंजीकरण विवरण और
+                        दस्तावेज़ों में बदलाव नहीं किया जा सकेगा।
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
-                {!registrationLocked && (
-                  <div className="flex gap-3">
+              <div className="mt-6 flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                {!registrationLocked ? (
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <Button
+                      className="h-11 rounded-xl"
                       variant="secondary"
-                      onClick={() =>
-                        setStep(
-                          3,
-                        )
-                      }
+                      onClick={() => setStep(3)}
                     >
-                      Edit Documents
+                      Edit Documents / दस्तावेज़ बदलें
                     </Button>
 
                     <Button
+                      className="h-11 rounded-xl"
                       variant="secondary"
-                      onClick={() =>
-                        setStep(
-                          1,
-                        )
-                      }
+                      onClick={() => setStep(1)}
                     >
-                      Edit Details
+                      Edit Details / विवरण बदलें
                     </Button>
+                  </div>
+                ) : (
+                  <div className="text-sm font-semibold text-emerald-700">
+                    Registration Locked / पंजीकरण लॉक है
                   </div>
                 )}
 
                 <Button
-                  className="rounded-xl bg-[#071a2f] hover:bg-[#0b294b]"
+                  className="h-11 rounded-xl bg-[#071a2f] px-6 hover:bg-[#0b294b]"
                   onClick={
-                    registrationLocked
-                      ? () =>
-                          setStep(
-                            5,
-                          )
-                      : lockAndProceed
+                    registrationLocked ? () => setStep(5) : lockAndProceed
                   }
-                  disabled={
-                    busy
-                  }
+                  disabled={busy}
                 >
                   {busy ? (
                     <>
@@ -1815,122 +1868,224 @@ await cashfree.checkout({
                   ) : (
                     <>
                       <LockKeyhole className="mr-2 h-4 w-4" />
-                      Proceed to Payment
+                      Proceed to Payment / भुगतान करें
                     </>
                   )}
                 </Button>
               </div>
-            </>
+            </div>
           )}
 
+          {/* STEP 6 - PAYMENT */}
           {step === 5 && (
-            <>
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight text-[#071a2f]">
-                    Payment Confirmation
-                  </h2>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    Registration is
-                    locked. Complete the
-                    payment to activate
-                    your account.
-                  </p>
-                </div>
-
-                <LockKeyhole className="h-8 w-8 text-blue-600" />
-              </div>
+            <div className="mx-auto max-w-4xl p-5 sm:p-7">
+              <StepIntro
+                step="Step 6 of 6"
+                title="Complete Your Payment"
+                hindiTitle="भुगतान पूरा करें"
+                description="Your registration has been confirmed and locked. Complete the secure online payment to activate your internship account."
+                hindiDescription="आपका पंजीकरण पुष्टि करके लॉक कर दिया गया है। इंटर्नशिप खाता सक्रिय करने के लिए सुरक्षित ऑनलाइन भुगतान पूरा करें।"
+              />
 
               {portalRegistrationNumber && (
-  <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-5">
-    <div className="flex items-start gap-3">
-      <BadgeCheck className="mt-0.5 h-6 w-6 shrink-0 text-blue-600" />
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
+                  <div className="flex items-start gap-3">
+                    <BadgeCheck className="mt-0.5 h-6 w-6 shrink-0 text-blue-600" />
 
-      <div>
-        <p className="text-xs font-bold uppercase tracking-wider text-blue-600">
-          RK Nexora Registration Number
-        </p>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-blue-600">
+                        RK Nexora Registration Number
+                      </p>
 
-        <p className="mt-2 text-xl font-black tracking-wide text-[#071a2f]">
-          {portalRegistrationNumber}
-        </p>
+                      <p className="mt-1 text-xs font-semibold text-blue-700">
+                        आरके नेक्सोरा पंजीकरण संख्या
+                      </p>
 
-        <p className="mt-1 text-xs text-slate-500">
-          This number will be confirmed after successful payment.
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+                      <p className="mt-2 text-xl font-black tracking-wide text-[#071a2f]">
+                        {portalRegistrationNumber}
+                      </p>
 
-              <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-7 shadow-lg shadow-blue-900/5">
-                <p className="text-sm text-slate-600">
-                  Selected Domain
-                </p>
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        This registration number will become active after
+                        successful payment.
+                        <br />
+                        सफल भुगतान के बाद यह पंजीकरण संख्या सक्रिय हो जाएगी।
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                <h3 className="text-lg font-bold text-slate-900">
-                  {
-                    selectedDomain?.domain_name
-                  }
-                </h3>
+              <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="grid sm:grid-cols-[1fr_auto]">
+                  <div className="p-5 sm:p-6">
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
+                      Selected Domain / चयनित डोमेन
+                    </p>
 
-                <p className="mt-3 text-2xl font-bold text-slate-900">
-                  ₹
-                  {
-                    selectedDomain?.fee ??
-                    0
-                  }
-                </p>
+                    <h3 className="mt-2 text-xl font-black text-[#071a2f]">
+                      {selectedDomain?.domain_name || "-"}
+                    </h3>
 
-                <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-  <div className="flex items-start gap-3">
-    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                    <p className="mt-1 text-sm text-slate-500">
+                      {selectedDomain?.duration_hours || 0} Learning Hours /
+                      प्रशिक्षण घंटे
+                    </p>
+                  </div>
 
-    <div>
-      <p className="text-sm font-bold text-emerald-900">
-        Secure online payment
-      </p>
+                  <div className="border-t border-slate-200 bg-slate-50 p-5 sm:min-w-[190px] sm:border-l sm:border-t-0 sm:p-6">
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
+                      Payable Fee / शुल्क
+                    </p>
 
-      <p className="mt-1 text-xs leading-5 text-emerald-700">
-        You will be redirected to Cashfree&apos;s secure checkout.
-        Your account will activate only after server-side payment
-        verification.
-      </p>
-    </div>
-  </div>
-</div>
+                    <p className="mt-2 text-3xl font-black text-[#071a2f]">
+                      ₹{selectedDomain?.fee ?? 0}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t border-emerald-100 bg-emerald-50 p-4 sm:p-5">
+                  <div className="flex items-start gap-3">
+                    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+
+                    <div>
+                      <p className="text-sm font-bold text-emerald-900">
+                        Secure Online Payment / सुरक्षित ऑनलाइन भुगतान
+                      </p>
+
+                      <p className="mt-1 text-xs leading-5 text-emerald-700">
+                        You will be redirected to Cashfree&apos;s secure
+                        checkout. Your account will activate only after
+                        server-side payment verification.
+                      </p>
+
+                      <p className="mt-1 text-xs leading-5 text-emerald-600">
+                        आपको Cashfree के सुरक्षित भुगतान पेज पर भेजा जाएगा।
+                        भुगतान सत्यापित होने के बाद ही आपका खाता सक्रिय होगा।
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
-                <Button
-                  className="rounded-xl bg-[#071a2f] hover:bg-[#0b294b]"
-                  onClick={
-                    pay
-                  }
-                  disabled={
-                    busy
-                  }
-                >
-                  {busy ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    "Pay & Activate Account"
-                  )}
-                </Button>
-              </div>
-            </>
+              <Button
+                className="mt-5 h-12 w-full rounded-xl bg-[#071a2f] text-base font-bold hover:bg-[#0b294b]"
+                onClick={pay}
+                disabled={busy}
+              >
+                {busy ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing Payment...
+                  </>
+                ) : (
+                  <>
+                    Pay & Activate Account / भुगतान करें
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+
+              <p className="mt-3 text-center text-xs leading-5 text-slate-400">
+                Do not refresh or close the page while payment is processing.
+                <br />
+                भुगतान प्रक्रिया के दौरान पेज को Refresh या Close न करें।
+              </p>
+            </div>
           )}
         </section>
 
-        <p className="mt-6 text-center text-xs leading-5 text-slate-400">
-          Your information is protected with secure role-based access.
-        </p>
+        <div className="mt-5 flex items-center justify-center gap-2 text-center text-xs text-slate-400">
+          <ShieldCheck className="h-4 w-4" />
+          Your information is protected with secure role-based access. /
+          आपकी जानकारी सुरक्षित है।
+        </div>
       </div>
     </main>
+  );
+}
+
+function StepIntro({
+  step,
+  title,
+  hindiTitle,
+  description,
+  hindiDescription,
+}: {
+  step: string;
+  title: string;
+  hindiTitle: string;
+  description: string;
+  hindiDescription: string;
+}) {
+  return (
+    <div className="mb-6 border-b border-slate-100 pb-5">
+      <p className="inline-flex rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-blue-700">
+        {step}
+      </p>
+
+      <h2 className="mt-3 text-2xl font-black tracking-tight text-[#071a2f] sm:text-3xl">
+        {title}
+      </h2>
+
+      <p className="mt-1 text-sm font-semibold text-blue-700">
+        {hindiTitle}
+      </p>
+
+      <p className="mt-3 text-sm leading-6 text-slate-600">
+        {description}
+      </p>
+
+      <p className="mt-1 text-sm leading-6 text-slate-400">
+        {hindiDescription}
+      </p>
+    </div>
+  );
+}
+
+function InfoCheck({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex gap-3">
+      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
+      <p className="text-sm leading-6 text-white/80">{children}</p>
+    </div>
+  );
+}
+
+function FormSection({
+  title,
+  hindiTitle,
+  description,
+  hindiDescription,
+  children,
+}: {
+  title: string;
+  hindiTitle: string;
+  description: string;
+  hindiDescription: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="mb-5">
+        <h3 className="font-black text-[#071a2f]">{title}</h3>
+        <p className="mt-0.5 text-sm font-semibold text-blue-700">
+          {hindiTitle}
+        </p>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          {description}
+        </p>
+        <p className="mt-1 text-sm leading-6 text-slate-400">
+          {hindiDescription}
+        </p>
+      </div>
+
+      {children}
+    </div>
   );
 }
 
@@ -1958,8 +2113,7 @@ function Field({
 }: {
   label: string;
   error?: string;
-  children:
-    React.ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <label className="block">
@@ -2028,17 +2182,17 @@ function FileField({
             </p>
           ) : existingFile ? (
             <p className="mt-1 text-sm font-medium text-emerald-600">
-              Already uploaded
+              Already uploaded / पहले से अपलोड
             </p>
           ) : (
             <p className="mt-1 text-sm text-slate-500">
-              Click to select PDF, PNG or JPG
+              Click to select PDF, PNG or JPG / फ़ाइल चुनें
             </p>
           )}
         </div>
 
         <span className="hidden rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm sm:block">
-          Browse
+          Browse / चुनें
         </span>
       </div>
     </label>
@@ -2050,10 +2204,7 @@ function ReviewItem({
   value,
 }: {
   label: string;
-  value?:
-    | string
-    | number
-    | null;
+  value?: string | number | null;
 }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -2076,12 +2227,16 @@ function DocumentStatus({
   available: boolean;
 }) {
   return (
-    <div className={`flex items-center gap-3 rounded-xl border p-4 ${available ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
+    <div
+      className={`flex items-center gap-3 rounded-xl border p-4 ${
+        available
+          ? "border-emerald-200 bg-emerald-50"
+          : "border-slate-200 bg-slate-50"
+      }`}
+    >
       <CheckCircle2
         className={`h-5 w-5 ${
-          available
-            ? "text-green-600"
-            : "text-slate-300"
+          available ? "text-green-600" : "text-slate-300"
         }`}
       />
 
