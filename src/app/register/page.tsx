@@ -1029,16 +1029,7 @@ await cashfree.checkout({
             अपना इंटर्नशिप पंजीकरण पूरा करें
           </p>
 
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-            Verify your college record, complete your details, choose an
-            internship domain, upload the required documents and complete
-            payment.
-          </p>
-
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
-            कॉलेज रिकॉर्ड सत्यापित करें, विवरण पूरा करें, इंटर्नशिप डोमेन चुनें,
-            आवश्यक दस्तावेज़ अपलोड करें और भुगतान पूरा करें।
-          </p>
+         
         </div>
 
         {/* Main registration card */}

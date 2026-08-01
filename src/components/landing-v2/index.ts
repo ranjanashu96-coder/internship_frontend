@@ -1,0 +1,11 @@
+export { default as Navbar } from "./Navbar";
+export { default as Hero } from "./Hero";
+export { default as TrustStrip } from "./TrustStrip";
+export { default as About } from "./About";
+export { default as Domains } from "./Domains";
+export { default as Process } from "./Process";
+export { default as WhyInternship } from "./WhyInternship";
+export { default as WhyChoose } from "./WhyChoose";
+export { default as Recognition } from "./Recognition";
+export { default as CTA } from "./CTA";
+export { default as Footer } from "./Footer";
