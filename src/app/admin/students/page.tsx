@@ -312,282 +312,223 @@ const handleStartInternship =
     filters.semester !== "" ||
     filters.status !== "";
 
-  const columns =
-    useMemo<
-      ColumnDef<StudentWithRelations>[]
-    >(
-      () => [
-        {
-          accessorKey:
-            "registration_number",
-          header: "Registration",
-          cell: ({ row }) => (
-            <div className="min-w-36">
-              <p className="font-semibold text-slate-900">
-                {row.original
-                  .registration_number ||
-                  "-"}
-              </p>
+  const columns = useMemo<
+  ColumnDef<StudentWithRelations>[]
+>(
+  () => [
+    {
+      id: "student",
+      header: "Student",
+      cell: ({ row }) => {
+        const student = row.original;
 
-              <p className="mt-1 text-xs text-slate-500">
-                {row.original.student_id ||
-                  "Student ID not assigned"}
-              </p>
-            </div>
-          ),
-        },
-        {
-          accessorKey: "name",
-          header: "Student",
-          cell: ({ row }) => (
-            <div className="min-w-44">
-              <p className="font-medium text-slate-900">
-                {row.original.name || "-"}
-              </p>
+        return (
+          <div className="w-[190px]">
+            <p className="font-semibold text-slate-900">
+              {student.name || "-"}
+            </p>
 
-              <p className="mt-1 text-xs text-slate-500">
-                {row.original.email || "-"}
-              </p>
+            <p className="mt-1 text-xs font-medium text-slate-600">
+              {student.registration_number || "-"}
+            </p>
 
-              {row.original.mobile && (
-                <p className="text-xs text-slate-500">
-                  {row.original.mobile}
-                </p>
-              )}
-            </div>
-          ),
-        },
-        {
-          id: "college",
-          header: "College",
-          cell: ({ row }) => (
-            <div className="min-w-48">
-              <p className="font-medium text-slate-900">
-                {row.original.college
-                  ?.name || "-"}
-              </p>
+            <p className="text-xs text-slate-500">
+              {student.student_id || "ID not assigned"}
+            </p>
 
-              <p className="mt-1 text-xs text-slate-500">
-                {row.original.college
-                  ?.code || ""}
+            {student.email && (
+              <p className="mt-1 truncate text-xs text-slate-500">
+                {student.email}
               </p>
-            </div>
-          ),
-        },
-        {
-          id: "programme",
-          header: "Programme",
-          cell: ({ row }) => (
-            <div className="min-w-36">
-              <p>
-                {row.original.programme ||
-                  "-"}
-              </p>
+            )}
 
-              <p className="mt-1 text-xs text-slate-500">
-                {row.original
-                  .major_subject || ""}
+            {student.mobile && (
+              <p className="text-xs text-slate-500">
+                {student.mobile}
               </p>
-            </div>
-          ),
-        },
-        {
-          id: "academic",
-          header: "Academic",
-          cell: ({ row }) => (
-            <div className="min-w-32">
-              <p>
-                {row.original.session ||
-                  "-"}
-              </p>
+            )}
+          </div>
+        );
+      },
+    },
 
-              <p className="mt-1 text-xs text-slate-500">
-                Semester{" "}
-                {row.original.semester ||
-                  "-"}
-              </p>
-            </div>
-          ),
-        },
-        {
-          id: "domain",
-          header: "Domain",
-          cell: ({ row }) => (
-            <span className="min-w-32">
-              {row.original.domain
-                ?.domain_name || "-"}
-            </span>
-          ),
-        },
-        {
-          accessorKey:
-            "internship_status",
-          header: "Internship",
-          cell: ({ row }) => (
-            <InternshipStatusBadge
-              status={
-                row.original
-                  .internship_status
-              }
-            />
-          ),
-        },
-        {
-          accessorKey:
-            "payment_status",
-          header: "Payment",
-          cell: ({ row }) => (
-            <PaymentStatusBadge
-              status={
-                row.original
-                  .payment_status
-              }
-            />
-          ),
-        },
-        {
-  id: "internship_start",
-  header: "Start Internship",
+    {
+      id: "college_domain",
+      header: "College / Domain",
+      cell: ({ row }) => (
+        <div className="w-[180px]">
+          <p className="line-clamp-2 font-medium text-slate-900">
+            {row.original.college?.name || "-"}
+          </p>
 
-  cell: ({ row }) => {
-    const student =
-      row.original;
+          {row.original.college?.code && (
+            <p className="mt-1 text-xs text-slate-500">
+              {row.original.college.code}
+            </p>
+          )}
 
-    if (
-      student.payment_status !==
-      "paid"
-    ) {
-      return (
-        <div className="min-w-48">
-          <p className="text-xs font-medium text-amber-600">
-            Payment pending
+          {row.original.domain?.domain_name && (
+            <p className="mt-1 text-xs font-medium text-indigo-600">
+              {row.original.domain.domain_name}
+            </p>
+          )}
+        </div>
+      ),
+    },
+
+    {
+      id: "academic",
+      header: "Academic",
+      cell: ({ row }) => (
+        <div className="w-[165px]">
+          <p className="line-clamp-2 font-medium text-slate-800">
+            {row.original.programme || "-"}
+          </p>
+
+          {row.original.major_subject && (
+            <p className="mt-1 text-xs text-slate-500">
+              {row.original.major_subject}
+            </p>
+          )}
+
+          <p className="mt-1 text-xs text-slate-500">
+            {row.original.session || "-"} · Sem{" "}
+            {row.original.semester || "-"}
           </p>
         </div>
-      );
-    }
+      ),
+    },
 
-    if (
-      student.internship_status ===
-      "completed"
-    ) {
-      return (
-        <div className="min-w-48">
-          <Badge tone="green">
-            Completed
-          </Badge>
-        </div>
-      );
-    }
-
-    if (
-      student.internship_status ===
-      "blocked"
-    ) {
-      return (
-        <div className="min-w-48">
-          <Badge tone="red">
-            Blocked
-          </Badge>
-        </div>
-      );
-    }
-
-    return (
-      <div className="min-w-[260px]">
-        <div className="flex items-center gap-2">
-          <Input
-            type="date"
-
-            value={
-              internshipStartDates[
-                student.id
-              ] ||
-              student
-                .internship_start_date ||
-              ""
-            }
-
-            onChange={(event) =>
-              setInternshipStartDates(
-                (current) => ({
-                  ...current,
-
-                  [student.id]:
-                    event.target
-                      .value,
-                }),
-              )
-            }
-
-            className="w-40"
+    {
+      id: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <div className="w-[110px] space-y-2">
+          <InternshipStatusBadge
+            status={row.original.internship_status}
           />
 
-          <Button
-            type="button"
-            disabled={
-              startingStudentId ===
-              student.id
-            }
-
-            onClick={() =>
-              void handleStartInternship(
-                student,
-              )
-            }
-          >
-            {startingStudentId ===
-            student.id ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving
-              </>
-            ) : student
-                .internship_start_date ? (
-              "Change Date"
-            ) : (
-              "Start"
-            )}
-          </Button>
+          <div>
+            <PaymentStatusBadge
+              status={row.original.payment_status}
+            />
+          </div>
         </div>
+      ),
+    },
 
-        {student
-          .internship_start_date && (
-          <p className="mt-1 text-xs text-slate-500">
-            Current:{" "}
-            {
-              student
-                .internship_start_date
-            }
-          </p>
-        )}
-      </div>
-    );
-  },
-},
-        {
-          id: "actions",
-          header: "Actions",
-          cell: ({ row }) => (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() =>
-                router.push(
-                  `/admin/students/${row.original.id}`,
-                )
-              }
-            >
-              <Eye className="mr-2 h-4 w-4" />
-              View
-            </Button>
-          ),
-        },
-      ],
-      [router,
-  internshipStartDates,
-  startingStudentId,
-  handleStartInternship,],
-    );
+    {
+      id: "internship_start",
+      header: "Start Internship",
+      cell: ({ row }) => {
+        const student = row.original;
+
+        if (student.payment_status !== "paid") {
+          return (
+            <div className="w-[200px]">
+              <p className="text-xs font-medium text-amber-600">
+                Payment pending
+              </p>
+            </div>
+          );
+        }
+
+        if (student.internship_status === "completed") {
+          return (
+            <div className="w-[200px]">
+              <Badge tone="green">
+                Completed
+              </Badge>
+            </div>
+          );
+        }
+
+        if (student.internship_status === "blocked") {
+          return (
+            <div className="w-[200px]">
+              <Badge tone="red">
+                Blocked
+              </Badge>
+            </div>
+          );
+        }
+
+        return (
+          <div className="w-[215px]">
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={
+                  internshipStartDates[student.id] ||
+                  student.internship_start_date ||
+                  ""
+                }
+                onChange={(event) =>
+                  setInternshipStartDates((current) => ({
+                    ...current,
+                    [student.id]: event.target.value,
+                  }))
+                }
+                className="h-9 w-[140px] px-2 text-xs"
+              />
+
+              <Button
+                type="button"
+                className="h-9 whitespace-nowrap px-3 text-xs"
+                disabled={
+                  startingStudentId === student.id
+                }
+                onClick={() =>
+                  void handleStartInternship(student)
+                }
+              >
+                {startingStudentId === student.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : student.internship_start_date ? (
+                  "Save"
+                ) : (
+                  "Start"
+                )}
+              </Button>
+            </div>
+
+            {student.internship_start_date && (
+              <p className="mt-1 text-xs text-slate-500">
+                Current: {student.internship_start_date}
+              </p>
+            )}
+          </div>
+        );
+      },
+    },
+
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => (
+        <Button
+          type="button"
+          variant="secondary"
+          className="h-9 whitespace-nowrap px-3 text-xs"
+          onClick={() =>
+            router.push(
+              `/admin/students/${row.original.id}`,
+            )
+          }
+        >
+          <Eye className="mr-1.5 h-4 w-4" />
+          View
+        </Button>
+      ),
+    },
+  ],
+  [
+    router,
+    internshipStartDates,
+    startingStudentId,
+    handleStartInternship,
+  ],
+);
 
   return (
     <div className="space-y-6">

@@ -35,6 +35,9 @@ import { toast } from "sonner";
 import { authService } from "@/lib/services";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
+import {
+  NotificationBell,
+} from "@/components/notification-bell";
 
 import type { Role } from "@/types";
 
@@ -461,16 +464,7 @@ export function AppShell({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              aria-label="Notifications"
-              title="Notifications"
-              className="rounded-full p-2 text-slate-600 transition hover:bg-slate-100"
-            >
-              <Bell
-                size={19}
-              />
-            </button>
+           <NotificationBell />
 
             <div className="hidden text-right sm:block">
               <p className="max-w-48 truncate text-sm font-semibold text-slate-900">

@@ -431,3 +431,51 @@ export interface BulkJob {
 
   updated_at?: string;
 }
+export interface Notification {
+  id: number;
+
+  recipient_type:
+    | "student"
+    | "mentor"
+    | "college_admin"
+    | "admin"
+    | "super_admin";
+
+  recipient_id: number;
+
+  type: string;
+
+  title: string;
+
+  message: string;
+
+  action_url?: string | null;
+
+  metadata_json?: Record<
+    string,
+    unknown
+  > | null;
+
+  is_read: boolean;
+
+  read_at?: string | null;
+
+  created_at: string;
+
+  updated_at?: string;
+}
+
+export interface NotificationListData {
+  items: Notification[];
+
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
+}
+
+export interface NotificationUnreadCountData {
+  unread_count: number;
+}

@@ -15,6 +15,9 @@ import type {
   PaginatedData,
   Student,
   User,
+  Notification as AppNotification,
+NotificationListData,
+NotificationUnreadCountData,
 } from "@/types";
 
 export interface CreateCollegePayload {
@@ -79,6 +82,53 @@ export const authService = {
       token,
       password,
     }),
+};
+
+/*
+|--------------------------------------------------------------------------
+| Notifications
+|--------------------------------------------------------------------------
+*/
+
+export const notificationService = {
+  list: (
+    page = 1,
+    limit = 20,
+  ) =>
+    api.get<
+      ApiResponse<NotificationListData>
+    >(
+      "/notifications",
+      {
+        params: {
+          page,
+          limit,
+        },
+      },
+    ),
+
+  unreadCount: () =>
+    api.get<
+      ApiResponse<NotificationUnreadCountData>
+    >(
+      "/notifications/unread-count",
+    ),
+
+  markAsRead: (
+    notificationId: number,
+  ) =>
+    api.patch<
+      ApiResponse<AppNotification>
+    >(
+      `/notifications/${notificationId}/read`,
+    ),
+
+  markAllAsRead: () =>
+    api.patch<
+      ApiResponse<Record<string, never>>
+    >(
+      "/notifications/read-all",
+    ),
 };
 
 export interface AdminListParams {
