@@ -61,27 +61,48 @@ export interface UpdateCollegePayload
 }
 
 export const authService = {
-  login: (data: { identifier: string; password: string }) =>
-    api.post<
+  login: (
+    data: {
+      identifier: string;
+      password: string;
+    },
+  ) =>
+    publicApi.post<
       ApiResponse<{
         user: User;
         accessToken: string;
       }>
-    >("/auth/login", data),
+    >(
+      "/auth/login",
+      data,
+    ),
 
-  forgot: (email: string) =>
-    api.post("/auth/forgot-password", { email }),
+  forgot: (
+    email: string,
+  ) =>
+    publicApi.post(
+      "/auth/forgot-password",
+      {
+        email,
+      },
+    ),
+
+  reset: (
+    token: string,
+    password: string,
+  ) =>
+    publicApi.post(
+      "/auth/reset-password",
+      {
+        token,
+        password,
+      },
+    ),
 
   logout: () =>
-  api.post(
-    "/auth/logout",
-  ),
-
-  reset: (token: string, password: string) =>
-    api.post("/auth/reset-password", {
-      token,
-      password,
-    }),
+    api.post(
+      "/auth/logout",
+    ),
 };
 
 /*
