@@ -1640,30 +1640,89 @@ await cashfree.checkout({
 
               <div className="mt-5 grid gap-4">
                 <FileField
-                  label="Passport Photo / पासपोर्ट फोटो"
-                  accept="image/png,image/jpeg"
-                  existingFile={savedDocuments.photo}
-                  selectedFile={files.photo}
-                  onChange={(file) =>
-                    setFiles((current) => ({
-                      ...current,
-                      photo: file,
-                    }))
-                  }
-                />
+  label="Passport Photo / पासपोर्ट फोटो"
+  accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+  hint="Only JPG, JPEG, PNG or WEBP image, maximum 5 MB"
+  existingFile={savedDocuments.photo}
+  selectedFile={files.photo}
+  onChange={(file) => {
+    if (!file) {
+      setFiles((current) => ({
+        ...current,
+        photo: undefined,
+      }));
+
+      return;
+    }
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    const allowedExtension =
+      /\.(jpg|jpeg|png|webp)$/i;
+
+    const validMimeType =
+      allowedTypes.includes(
+        file.type,
+      );
+
+    const validExtension =
+      allowedExtension.test(
+        file.name,
+      );
+
+    if (
+      !validMimeType ||
+      !validExtension
+    ) {
+      toast.error(
+        "Passport photo must be a JPG, JPEG, PNG or WEBP image. PDF, Word and Excel files are not allowed.",
+      );
+
+      return;
+    }
+
+    const maximumSize =
+      5 * 1024 * 1024;
+
+    if (
+      file.size > maximumSize
+    ) {
+      toast.error(
+        "Passport photo must be smaller than 5 MB.",
+      );
+
+      return;
+    }
+
+    setFiles((current) => ({
+      ...current,
+      photo: file,
+    }));
+  }}
+/>
 
                 <FileField
-                  label="Latest Semester Admit Card / नवीनतम सेमेस्टर Admit Card"
-                  accept="application/pdf,image/png,image/jpeg"
-                  existingFile={savedDocuments.identity_document}
-                  selectedFile={files.identity_document}
-                  onChange={(file) =>
-                    setFiles((current) => ({
-                      ...current,
-                      identity_document: file,
-                    }))
-                  }
-                />
+  label="Latest Semester Admit Card / नवीनतम सेमेस्टर Admit Card"
+  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/png,image/jpeg"
+  hint="PDF, JPG, JPEG or PNG, maximum 5 MB"
+  existingFile={
+    savedDocuments.identity_document
+  }
+  selectedFile={
+    files.identity_document
+  }
+  onChange={(file) =>
+    setFiles((current) => ({
+      ...current,
+      identity_document:
+        file,
+    }))
+  }
+/>
               </div>
 
               <div className="mt-6 flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-between">
@@ -2122,12 +2181,14 @@ function Field({
 function FileField({
   label,
   accept,
+  hint,
   existingFile,
   selectedFile,
   onChange,
 }: {
   label: string;
   accept: string;
+  hint?: string;
   existingFile?: string | null;
   selectedFile?: File;
   onChange: (file?: File) => void;
@@ -2177,7 +2238,7 @@ function FileField({
             </p>
           ) : (
             <p className="mt-1 text-sm text-slate-500">
-              Click to select PDF, PNG or JPG / फ़ाइल चुनें
+              {hint || "Click to select PDF, PNG or JPG / फ़ाइल चुनें"}
             </p>
           )}
         </div>
