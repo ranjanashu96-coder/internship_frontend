@@ -67,6 +67,7 @@ interface StudentWithRelations {
 
   mobile?: string | null;
   email?: string | null;
+  photo?: string | null;
 
   college_id?: number | null;
   domain_id?: number | null;
@@ -159,6 +160,34 @@ const initialFormData: StudentFormData = {
 | Helpers
 |--------------------------------------------------------------------------
 */
+
+const getStudentPhotoUrl = (
+  photo?: string | null,
+) => {
+  if (!photo) {
+    return null;
+  }
+
+  if (
+    photo.startsWith("http://") ||
+    photo.startsWith("https://")
+  ) {
+    return photo;
+  }
+
+  const backendBaseUrl = String(
+    process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:5000/api",
+  )
+    .replace(/\/api\/?$/, "")
+    .replace(/\/$/, "");
+
+  return `${backendBaseUrl}${
+    photo.startsWith("/")
+      ? photo
+      : `/${photo}`
+  }`;
+};
 
 const formatDateForInput = (
   value?: string | null,
@@ -791,9 +820,10 @@ export default function StudentDetailsPage() {
         <div className="bg-gradient-to-r from-slate-900 to-slate-700 px-6 py-6 text-white">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/10">
-                <UserRound className="h-8 w-8" />
-              </div>
+              <StudentPhoto
+  photo={student.photo}
+  name={student.name}
+/>
 
               <div>
                 <h1 className="text-2xl font-bold">
@@ -1516,4 +1546,35 @@ function PaymentStatusBadge({
         </Badge>
       );
   }
+}
+
+function StudentPhoto({
+  photo,
+  name,
+}: {
+  photo?: string | null;
+  name: string;
+}) {
+  const [imageFailed, setImageFailed] =
+    useState(false);
+
+  const photoUrl =
+    getStudentPhotoUrl(photo);
+
+  return (
+    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white/10">
+      {photoUrl && !imageFailed ? (
+        <img
+          src={photoUrl}
+          alt={`${name} photo`}
+          className="h-full w-full object-cover"
+          onError={() =>
+            setImageFailed(true)
+          }
+        />
+      ) : (
+        <UserRound className="h-8 w-8" />
+      )}
+    </div>
+  );
 }
