@@ -77,6 +77,34 @@ const formatPercentage = (
     1,
   )}%`;
 
+const getCollegeLogoUrl = (
+  logo?: string | null,
+) => {
+  if (!logo) {
+    return null;
+  }
+
+  if (
+    logo.startsWith("http://") ||
+    logo.startsWith("https://")
+  ) {
+    return logo;
+  }
+
+  const backendUrl = String(
+    process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:5000/api",
+  )
+    .replace(/\/api\/?$/, "")
+    .replace(/\/$/, "");
+
+  return `${backendUrl}${
+    logo.startsWith("/")
+      ? logo
+      : `/${logo}`
+  }`;
+};
+
 const getErrorMessage = (
   error: unknown,
 ) => {
@@ -289,9 +317,13 @@ export default function CollegeDashboardPage() {
 
         <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
           <div className="flex items-start gap-4">
-            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white/10 text-cyan-300 ring-1 ring-white/10">
-              <GraduationCap className="h-7 w-7" />
-            </div>
+           <CollegeLogo
+  logo={dashboard?.college.logo}
+  name={
+    dashboard?.college.name ||
+    "College"
+  }
+/>
 
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -1045,6 +1077,39 @@ function EmptyState({
           {message}
         </p>
       </div>
+    </div>
+  );
+}
+
+function CollegeLogo({
+  logo,
+  name,
+}: {
+  logo?: string | null;
+  name: string;
+}) {
+  const [
+    imageFailed,
+    setImageFailed,
+  ] = useState(false);
+
+  const logoUrl =
+    getCollegeLogoUrl(logo);
+
+  return (
+    <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/15 bg-white p-1.5 text-cyan-300 ring-1 ring-white/10">
+      {logoUrl && !imageFailed ? (
+        <img
+          src={logoUrl}
+          alt={`${name} logo`}
+          className="h-full w-full object-contain"
+          onError={() =>
+            setImageFailed(true)
+          }
+        />
+      ) : (
+        <GraduationCap className="h-7 w-7" />
+      )}
     </div>
   );
 }

@@ -303,9 +303,9 @@ export function AppShell({
   setOpen(false);
   setLoggingOut(false);
 
-  toast.success(
-    "Logged out successfully",
-  );
+  // toast.success(
+  //   "Logged out successfully",
+  // );
 
   router.replace("/login");
   router.refresh();

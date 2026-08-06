@@ -914,21 +914,19 @@ export default function Page() {
       }
     };
 
-  const loadStudents =
-    async () => {
-      setLoadingStudents(
-        true,
-      );
+const loadStudents =
+  async () => {
+    setLoadingStudents(true);
 
-      clearPreview();
+    clearPreview();
 
-      try {
-        const params:
-          AdminListParams & {
-            sector_id?:
-              | number
-              | string;
-          } = {
+    try {
+      const params:
+        AdminListParams & {
+          sector_id?:
+            | number
+            | string;
+        } = {
           page: 1,
           limit: 100,
 
@@ -963,38 +961,63 @@ export default function Page() {
           mentor_id:
             form.mentor_id ||
             undefined,
+
+          // Sirf active internship
+          status: "active",
+
+          // Sirf paid students
+          payment_status: "paid",
         };
 
-        const response =
-          await adminService.students(
-            params,
-          );
-
-        setStudents(
-          response
-            .data
-            .data
-            .items ||
-            [],
+      const response =
+        await adminService.students(
+          params,
         );
 
-        setSelectedStudents(
-          [],
+      /*
+       * Frontend safety filter:
+       * Backend galti se extra student bheje
+       * tab bhi list me nahi dikhega.
+       */
+      const eligibleStudents =
+        (
+          response.data.data.items ||
+          []
+        ).filter(
+          (student) =>
+            student.payment_status ===
+              "paid" &&
+            student.internship_status ===
+              "active",
         );
-      } catch (
-        error
+
+      setStudents(
+        eligibleStudents,
+      );
+
+      setSelectedStudents(
+        [],
+      );
+
+      if (
+        eligibleStudents.length === 0
       ) {
-        toast.error(
-          getErrorMessage(
-            error,
-          ),
-        );
-      } finally {
-        setLoadingStudents(
-          false,
+        toast.info(
+          "No paid and active students found",
         );
       }
-    };
+    } catch (error) {
+      toast.error(
+        getErrorMessage(
+          error,
+        ),
+      );
+    } finally {
+      setLoadingStudents(
+        false,
+      );
+    }
+  };
 
   const loadJobs =
     async () => {

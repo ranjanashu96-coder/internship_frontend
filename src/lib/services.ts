@@ -152,11 +152,65 @@ export const notificationService = {
     ),
 };
 
+export type AdminReportType =
+  | "student_registration"
+  | "attendance"
+  | "completion"
+  | "payment";
+
+export interface AdminReportParams {
+  report_type: AdminReportType;
+  page?: number;
+  limit?: number;
+  search?: string;
+  college_id?: number | string;
+  domain_id?: number | string;
+  session?: string;
+  semester?: string;
+  internship_status?: string;
+  payment_status?: string;
+  from_date?: string;
+  to_date?: string;
+}
+
+export interface AdminReportColumn {
+  key: string;
+  label: string;
+}
+
+export interface AdminReportSummary {
+  total_students: number;
+  active_students: number;
+  completed_students: number;
+  paid_students: number;
+  pending_payments: number;
+  total_revenue: number;
+}
+
+export interface AdminReportData {
+  report_type: AdminReportType;
+  columns: AdminReportColumn[];
+  rows: Array<
+    Record<
+      string,
+      string | number | boolean | null
+    >
+  >;
+  summary: AdminReportSummary;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
+}
+
 export interface AdminListParams {
   page?: number;
   limit?: number;
   search?: string;
   status?: string;
+   payment_status?: string;
   college_id?: number | string;
   domain_id?: number | string;
   session?: string;
@@ -739,6 +793,26 @@ dashboard: () =>
     ApiResponse<AdminDashboardData>
   >(
     "/admin/dashboard",
+  ),
+report: (params: AdminReportParams) =>
+  api.get<ApiResponse<AdminReportData>>(
+    "/admin/reports",
+    { params },
+  ),
+
+exportReport: (
+  format: "excel" | "pdf",
+  params: AdminReportParams,
+) =>
+  api.get<Blob>(
+    "/admin/reports/export",
+    {
+      params: {
+        ...params,
+        format,
+      },
+      responseType: "blob",
+    },
   ),
 
   /*
