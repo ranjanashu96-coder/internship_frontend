@@ -7,6 +7,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  IndianRupee,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -195,35 +196,50 @@ export default function CollegesPage() {
                     </td>
 
                     <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <Link
-                          href={`/admin/colleges/${college.id}/edit`}
-                        >
-                          <Button
-                            type="button"
-                            variant="secondary"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        </Link>
+                     <div className="flex justify-end gap-2">
+  <Link
+    href={`/admin/colleges/${college.id}/domain-fees`}
+  >
+    <Button
+      type="button"
+      variant="secondary"
+      className="gap-2"
+    >
+      <IndianRupee className="h-4 w-4" />
+      Domain Fees
+    </Button>
+  </Link>
 
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          disabled={
-                            deletingId === college.id
-                          }
-                          onClick={() =>
-                            deleteCollege(college.id)
-                          }
-                        >
-                          {deletingId === college.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
+  <Link
+    href={`/admin/colleges/${college.id}/edit`}
+  >
+    <Button
+      type="button"
+      variant="secondary"
+      title="Edit College"
+    >
+      <Pencil className="h-4 w-4" />
+    </Button>
+  </Link>
+
+  <Button
+    type="button"
+    variant="secondary"
+    title="Delete College"
+    disabled={
+      deletingId === college.id
+    }
+    onClick={() =>
+      deleteCollege(college.id)
+    }
+  >
+    {deletingId === college.id ? (
+      <Loader2 className="h-4 w-4 animate-spin" />
+    ) : (
+      <Trash2 className="h-4 w-4" />
+    )}
+  </Button>
+</div>
                     </td>
                   </tr>
                 ))}

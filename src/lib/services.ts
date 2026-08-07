@@ -240,6 +240,45 @@ export interface AdminStudentImportResult {
   errors: AdminStudentImportError[];
 }
 
+export interface CollegeDomainFeeItem {
+  id: number;
+  sector_id: number;
+  domain_name: string;
+  duration_hours: number;
+
+  default_fee: number;
+  custom_fee: number | null;
+  effective_fee: number;
+
+  fee_source:
+    | "college"
+    | "default";
+
+  status:
+    | "active"
+    | "inactive"
+    | "default";
+}
+
+export interface CollegeDomainFeesData {
+  college: {
+    id: number;
+    name: string;
+    code: string;
+  };
+
+  items: CollegeDomainFeeItem[];
+}
+
+export interface SaveCollegeDomainFeesPayload {
+  fees: Array<{
+    domain_id: number;
+    fee?: number;
+    use_default?: boolean;
+    status?: "active" | "inactive";
+  }>;
+}
+
 
 export interface CreateMentorPayload {
   name: string;
@@ -881,6 +920,30 @@ exportReport: (
     api.delete<ApiResponse<Record<string, never>>>(
       `/admin/colleges/${id}`,
     ),
+
+  collegeDomainFees: (
+  collegeId: number,
+) =>
+  api.get<
+    ApiResponse<CollegeDomainFeesData>
+  >(
+    `/admin/colleges/${collegeId}/domain-fees`,
+  ),
+
+saveCollegeDomainFees: (
+  collegeId: number,
+  data: SaveCollegeDomainFeesPayload,
+) =>
+  api.put<
+    ApiResponse<{
+      college_id: number;
+      saved_count: number;
+      default_count: number;
+    }>
+  >(
+    `/admin/colleges/${collegeId}/domain-fees`,
+    data,
+  ),
 
   /*
   |--------------------------------------------------------------------------
@@ -2917,9 +2980,19 @@ export const registrationService = {
       { registration_number },
     ),
 
-  domains: () =>
-    publicApi.get(
+  domains: (
+    registrationNumber: string,
+  ) =>
+    publicApi.get<
+      ApiResponse<Domain[]>
+    >(
       "/registration/domains",
+      {
+        params: {
+          registration_number:
+            registrationNumber,
+        },
+      },
     ),
 
   saveDetails: (data: object) =>

@@ -18,7 +18,7 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -295,30 +295,6 @@ const [
       },
     });
 
-  useEffect(() => {
-    const loadDomains =
-      async () => {
-        try {
-          const response =
-            await registrationService
-              .domains();
-
-          setDomains(
-            response.data.data,
-          );
-        } catch (error) {
-          toast.error(
-            getErrorMessage(
-              error,
-              "Domains could not be loaded",
-            ),
-          );
-        }
-      };
-
-    void loadDomains();
-  }, []);
-
  const selectedDomainId = watch("domain_id");
 
 const selectedDomain = useMemo(
@@ -449,7 +425,18 @@ const selectedDomain = useMemo(
 
         const student =
           response.data.data;
-          setPortalRegistrationNumber(
+
+        const domainResponse =
+          await registrationService
+            .domains(
+              student.registration_number,
+            );
+
+        setDomains(
+          domainResponse.data.data,
+        );
+
+        setPortalRegistrationNumber(
   student.portal_registration_number ||
     null,
 );
