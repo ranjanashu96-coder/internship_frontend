@@ -1662,7 +1662,17 @@ export interface CollegeDashboardData {
     mentor_assignment_rate: number;
     certificate_rate: number;
 
+    // Backward-compatible alias. Backend now fills this from actual successful payments.
     estimated_revenue: number;
+
+    // Actual successful payment revenue.
+    gross_revenue: number;
+    successful_payments: number;
+    revenue_source: string;
+
+    college_share_percentage: number;
+    rknexora_share_percentage: number;
+
     college_share_amount: number;
     rknexora_share_amount: number;
   };
@@ -1703,6 +1713,29 @@ export interface CollegeDashboardData {
     domain_id: number;
     domain_name: string;
     student_count: number;
+  }>;
+
+  // Actual revenue grouped by internship domain.
+  domain_revenue_distribution: Array<{
+    domain_id: number;
+    domain_name: string;
+    student_count: number;
+    paid_students: number;
+    gross_revenue: number;
+    college_share_amount: number;
+    rknexora_share_amount: number;
+  }>;
+
+  // Last 12 months actual successful payment revenue.
+  monthly_revenue: Array<{
+    key: string;
+    month: string;
+    year: number;
+    label: string;
+    successful_payments: number;
+    gross_revenue: number;
+    college_share_amount: number;
+    rknexora_share_amount: number;
   }>;
 
   session_distribution: Array<{

@@ -258,6 +258,39 @@ export default function CollegeDashboardPage() {
       ],
     );
 
+  const monthlyCollegeRevenueData =
+    useMemo(
+      () =>
+        (dashboard?.monthly_revenue || []).map(
+          (item) => ({
+            name: item.month,
+            value: Number(
+              item.college_share_amount || 0,
+            ),
+          }),
+        ),
+      [dashboard?.monthly_revenue],
+    );
+
+  const domainRevenueRows =
+    useMemo(
+      () =>
+        [
+          ...(dashboard?.domain_revenue_distribution || []),
+        ].sort(
+          (first, second) =>
+            Number(second.college_share_amount || 0) -
+            Number(first.college_share_amount || 0),
+        ),
+      [dashboard?.domain_revenue_distribution],
+    );
+
+  const grossRevenue = Number(
+    summary?.gross_revenue ??
+      summary?.estimated_revenue ??
+      0,
+  );
+
   const recentStudents =
     dashboard?.recent_students ||
     [];
@@ -429,13 +462,15 @@ export default function CollegeDashboardPage() {
         />
 
         <MetricCard
-          label="Revenue Collected"
+          label="College Revenue"
           value={formatCurrency(
-            summary?.estimated_revenue,
+            summary?.college_share_amount,
           )}
-          helper={`${formatNumber(
-            summary?.paid_students,
-          )} paid students`}
+          helper={`${formatCurrency(
+            grossRevenue,
+          )} gross • ${formatNumber(
+            summary?.successful_payments,
+          )} successful payments`}
           icon={CircleDollarSign}
           tone="amber"
         />
@@ -582,62 +617,123 @@ export default function CollegeDashboardPage() {
 
         <Panel
           title="Revenue Distribution"
-          description="College and RKNexora revenue share"
+          description="Actual successful-payment revenue and current share split"
         >
           <div className="space-y-4">
             <RevenueRow
               label="Total Collected"
-              value={summary?.estimated_revenue}
+              value={grossRevenue}
               percentage={100}
             />
 
             <RevenueRow
-              label="College Share"
-              value={
-                summary?.college_share_amount
-              }
-              percentage={
-                summary?.estimated_revenue
-                  ? Number(
-                      (
-                        (Number(
-                          summary.college_share_amount,
-                        ) /
-                          Number(
-                            summary.estimated_revenue,
-                          )) *
-                        100
-                      ).toFixed(
-                        1,
-                      ),
-                    )
-                  : 0
-              }
+              label="College Revenue"
+              value={summary?.college_share_amount}
+              percentage={Number(
+                summary?.college_share_percentage || 0,
+              )}
             />
 
             <RevenueRow
               label="RKNexora Share"
-              value={
-                summary?.rknexora_share_amount
-              }
-              percentage={
-                summary?.estimated_revenue
-                  ? Number(
-                      (
-                        (Number(
-                          summary.rknexora_share_amount,
-                        ) /
-                          Number(
-                            summary.estimated_revenue,
-                          )) *
-                        100
-                      ).toFixed(
-                        1,
-                      ),
-                    )
-                  : 0
-              }
+              value={summary?.rknexora_share_amount}
+              percentage={Number(
+                summary?.rknexora_share_percentage || 0,
+              )}
             />
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+              Revenue is calculated from successful payment records, not the current domain fee.
+            </div>
+          </div>
+        </Panel>
+      </section>
+
+      {/* Revenue Analytics */}
+      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.7fr]">
+        <Panel
+          title="Monthly College Revenue"
+          description="College share from successful payments during the last 12 months"
+        >
+          {monthlyCollegeRevenueData.some(
+            (item) => item.value > 0,
+          ) ? (
+            <div className="min-h-[320px]">
+              <BarAnalytics
+                data={monthlyCollegeRevenueData}
+              />
+            </div>
+          ) : (
+            <EmptyState message="No successful payment revenue available" />
+          )}
+        </Panel>
+
+        <Panel
+          title="Domain-wise Revenue"
+          description="See exactly which internship domains generate the college's revenue"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] text-left">
+              <thead>
+                <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-400">
+                  <th className="px-3 py-3 font-bold">Domain</th>
+                  <th className="px-3 py-3 text-right font-bold">Students</th>
+                  <th className="px-3 py-3 text-right font-bold">Paid</th>
+                  <th className="px-3 py-3 text-right font-bold">Collected</th>
+                  <th className="px-3 py-3 text-right font-bold">College Revenue</th>
+                  <th className="px-3 py-3 text-right font-bold">RKNexora</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-100">
+                {domainRevenueRows.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-3 py-12 text-center text-sm text-slate-500"
+                    >
+                      No domain revenue available
+                    </td>
+                  </tr>
+                ) : (
+                  domainRevenueRows.map((item) => (
+                    <tr
+                      key={item.domain_id}
+                      className="transition hover:bg-slate-50/70"
+                    >
+                      <td className="px-3 py-4">
+                        <p className="font-bold text-slate-900">
+                          {item.domain_name}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          Domain ID: {item.domain_id}
+                        </p>
+                      </td>
+
+                      <td className="px-3 py-4 text-right text-sm font-semibold text-slate-600">
+                        {formatNumber(item.student_count)}
+                      </td>
+
+                      <td className="px-3 py-4 text-right text-sm font-semibold text-emerald-700">
+                        {formatNumber(item.paid_students)}
+                      </td>
+
+                      <td className="px-3 py-4 text-right text-sm font-bold text-slate-900">
+                        {formatCurrency(item.gross_revenue)}
+                      </td>
+
+                      <td className="px-3 py-4 text-right text-sm font-black text-blue-700">
+                        {formatCurrency(item.college_share_amount)}
+                      </td>
+
+                      <td className="px-3 py-4 text-right text-sm font-semibold text-slate-500">
+                        {formatCurrency(item.rknexora_share_amount)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </Panel>
       </section>
