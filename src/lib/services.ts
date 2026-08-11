@@ -2515,8 +2515,12 @@ export interface StudentPayment {
   currency: string;
 
   transaction_id: string;
+
   cashfree_order_id?: string | null;
   cf_payment_id?: string | null;
+
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
 
   gateway?: string | null;
   status: string;
@@ -2966,42 +2970,95 @@ export interface LockRegistrationResponse {
     | "login";
 }
 
+export interface PaymentOrderStudent {
+  id: number;
+  name: string;
+  email?: string | null;
+  mobile?: string | null;
+  registration_number: string;
+  portal_registration_number?: string | null;
+}
+
+export interface PaymentOrderDomain {
+  id: number;
+  domain_name: string;
+}
+
 export interface CashfreeOrderResponse {
-  order_id: string;
-  cf_order_id: string;
-  payment_session_id: string;
-  amount: number;
-  currency: string;
-
-  student: {
-    id: number;
-    name: string;
-    email?: string | null;
-    mobile?: string | null;
-    registration_number: string;
-     portal_registration_number?: string | null;
-  };
-
-  domain: {
-    id: number;
-    domain_name: string;
-  };
-}
-
-export interface CashfreeVerificationPayload {
-  order_id: string;
-}
-
-export interface CashfreeVerificationResponse {
+  gateway: "cashfree";
   order_id: string;
   cf_order_id?: string | number | null;
+  payment_session_id: string;
   transaction_id?: string | null;
+  amount: number;
+  currency: string;
+  student: PaymentOrderStudent;
+  domain: PaymentOrderDomain;
+}
+
+export interface RazorpayOrderResponse {
+  gateway: "razorpay";
+  key_id: string;
+  order_id: string;
+  razorpay_order_id: string;
+  transaction_id?: string | null;
+
+  /*
+   * Razorpay Checkout receives amount
+   * in currency subunits (paise).
+   */
+  amount: number;
+  amount_rupees: number;
+  currency: string;
+
+  student: PaymentOrderStudent;
+  domain: PaymentOrderDomain;
+}
+
+export type PaymentOrderResponse =
+  | CashfreeOrderResponse
+  | RazorpayOrderResponse;
+
+export interface CashfreeVerificationPayload {
+  gateway?: "cashfree";
+  order_id: string;
+}
+
+export interface RazorpayVerificationPayload {
+  gateway: "razorpay";
+  student_id: number;
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+export type PaymentVerificationPayload =
+  | CashfreeVerificationPayload
+  | RazorpayVerificationPayload;
+
+export interface PaymentVerificationResponse {
+  gateway?: "cashfree" | "razorpay";
+  order_id: string;
+  cf_order_id?: string | number | null;
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
+
+  transaction_id?: string | null;
+
   portal_registration_number?:
     | string
     | null;
+
   order_status?: string;
-  payment_status: "paid" | "pending" | "failed";
+
+  payment_status:
+    | "paid"
+    | "pending"
+    | "processing"
+    | "failed";
+
   internship_status?: string;
+
   amount?: number;
   currency?: string;
 }
@@ -3053,21 +3110,39 @@ export const registrationService = {
   createPaymentOrder: (
     studentId: number,
   ) =>
-    publicApi.post(
+    publicApi.post<
+      ApiResponse<PaymentOrderResponse>
+    >(
       "/registration/payment/order",
       {
-        student_id: studentId,
+        student_id:
+          studentId,
       },
     ),
 
+  /*
+   * Backward compatible:
+   * - Existing Cashfree status page can still call:
+   *     verifyPayment(orderId)
+   * - Razorpay registration page calls:
+   *     verifyPayment({ gateway: "razorpay", ... })
+   */
   verifyPayment: (
-    orderId: string,
+    payload:
+      | string
+      | PaymentVerificationPayload,
   ) =>
-    publicApi.post(
+    publicApi.post<
+      ApiResponse<PaymentVerificationResponse>
+    >(
       "/registration/payment/verify",
-      {
-        order_id: orderId,
-      },
+      typeof payload ===
+      "string"
+        ? {
+            order_id:
+              payload,
+          }
+        : payload,
     ),
 
   downloadPaymentReceipt: (

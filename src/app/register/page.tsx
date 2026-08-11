@@ -141,6 +141,136 @@ const steps = [
   "Payment",
 ];
 
+
+type RazorpaySuccessResponse = {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayFailedResponse = {
+  error?: {
+    code?: string;
+    description?: string;
+    source?: string;
+    step?: string;
+    reason?: string;
+  };
+};
+
+type RazorpayCheckoutOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+  notes?: Record<string, string>;
+  theme?: {
+    color?: string;
+  };
+  handler: (
+    response: RazorpaySuccessResponse,
+  ) => void | Promise<void>;
+  modal?: {
+    ondismiss?: () => void;
+  };
+};
+
+type RazorpayInstance = {
+  open: () => void;
+  on: (
+    event: "payment.failed",
+    callback: (
+      response: RazorpayFailedResponse,
+    ) => void,
+  ) => void;
+};
+
+type RazorpayConstructor =
+  new (
+    options: RazorpayCheckoutOptions,
+  ) => RazorpayInstance;
+
+const getRazorpayConstructor =
+  (): RazorpayConstructor | undefined => {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return undefined;
+    }
+
+    return (
+      window as typeof window & {
+        Razorpay?: RazorpayConstructor;
+      }
+    ).Razorpay;
+  };
+
+const loadRazorpayScript =
+  async (): Promise<boolean> => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    if (getRazorpayConstructor()) {
+      return true;
+    }
+
+    const existingScript =
+      document.querySelector<HTMLScriptElement>(
+        'script[src="https://checkout.razorpay.com/v1/checkout.js"]',
+      );
+
+    if (existingScript) {
+      return new Promise<boolean>(
+        (resolve) => {
+          existingScript.addEventListener(
+            "load",
+            () => resolve(true),
+            { once: true },
+          );
+
+          existingScript.addEventListener(
+            "error",
+            () => resolve(false),
+            { once: true },
+          );
+        },
+      );
+    }
+
+    return new Promise<boolean>(
+      (resolve) => {
+        const script =
+          document.createElement(
+            "script",
+          );
+
+        script.src =
+          "https://checkout.razorpay.com/v1/checkout.js";
+
+        script.async = true;
+
+        script.onload =
+          () => resolve(true);
+
+        script.onerror =
+          () => resolve(false);
+
+        document.body.appendChild(
+          script,
+        );
+      },
+    );
+  };
+
 const getErrorMessage = (
   error: unknown,
   fallback: string,
@@ -176,6 +306,11 @@ export default function RegistrationPage() {
   successfulTransactionId,
   setSuccessfulTransactionId,
 ] = useState<string | null>(null);
+
+  const [
+    completed,
+    setCompleted,
+  ] = useState(false);
 
   const [step, setStep] =
     useState(0);
@@ -807,7 +942,9 @@ if (
 
   const pay = async () => {
     if (!studentId) {
-      toast.error("Student ID is missing");
+      toast.error(
+        "Student ID is missing",
+      );
       return;
     }
 
@@ -826,72 +963,345 @@ if (
 
     try {
       const response =
-        await registrationService.createPaymentOrder(
-          studentId,
-        );
+        await registrationService
+          .createPaymentOrder(
+            studentId,
+          );
 
       const order =
-  response.data.data;
+        response.data.data;
 
-  if (
-  order.student
-    ?.portal_registration_number
-) {
-  setPortalRegistrationNumber(
-    order.student
-      .portal_registration_number,
-  );
+      if (
+        order.student
+          ?.portal_registration_number
+      ) {
+        setPortalRegistrationNumber(
+          order.student
+            .portal_registration_number,
+        );
 
-  sessionStorage.setItem(
-    "portal_registration_number",
-    order.student
-      .portal_registration_number,
-  );
-}
+        sessionStorage.setItem(
+          "portal_registration_number",
+          order.student
+            .portal_registration_number,
+        );
+      }
 
-if (
-  !order.payment_session_id
-) {
-  throw new Error(
-    "Cashfree payment session ID is missing",
-  );
-}
+      /*
+       * -------------------------------------------------
+       * RAZORPAY
+       * -------------------------------------------------
+       */
+      if (
+        order.gateway ===
+        "razorpay"
+      ) {
+        if (
+          !order.key_id ||
+          !order.order_id
+        ) {
+          throw new Error(
+            "Razorpay order details are missing",
+          );
+        }
 
-sessionStorage.setItem(
-  "cashfree_order_id",
-  order.order_id,
-);
+        const scriptLoaded =
+          await loadRazorpayScript();
 
-sessionStorage.removeItem(
-  "cashfree_transaction_id",
-);
+        const RazorpayCheckout =
+          getRazorpayConstructor();
 
-      const cashfree =
-  await load({
-    mode:
-      process.env
-        .NEXT_PUBLIC_CASHFREE_MODE ===
-      "production"
-        ? "production"
-        : "sandbox",
-  });
+        if (
+          !scriptLoaded ||
+          !RazorpayCheckout
+        ) {
+          throw new Error(
+            "Unable to load Razorpay Checkout",
+          );
+        }
 
-await cashfree.checkout({
-  paymentSessionId:
-    order.payment_session_id,
-  redirectTarget: "_self",
-});
-      
+        sessionStorage.setItem(
+          "razorpay_order_id",
+          order.order_id,
+        );
+
+        sessionStorage.removeItem(
+          "razorpay_transaction_id",
+        );
+
+        let checkoutCompleted =
+          false;
+
+        const razorpay =
+          new RazorpayCheckout({
+            key:
+              order.key_id,
+
+            amount:
+              order.amount,
+
+            currency:
+              order.currency,
+
+            name:
+              "RK NEXORA PRIVATE LIMITED",
+
+            description:
+              `Internship Registration - ${
+                order.domain
+                  ?.domain_name ||
+                "Programme"
+              }`,
+
+            order_id:
+              order.order_id,
+
+            prefill: {
+              name:
+                order.student
+                  ?.name ||
+                "",
+
+              email:
+                order.student
+                  ?.email ||
+                "",
+
+              contact:
+                order.student
+                  ?.mobile ||
+                "",
+            },
+
+            notes: {
+              student_id:
+                String(
+                  studentId,
+                ),
+
+              registration_number:
+                String(
+                  order.student
+                    ?.registration_number ||
+                  getValues(
+                    "registration_number",
+                  ),
+                ),
+            },
+
+            theme: {
+              color:
+                "#0d5ea6",
+            },
+
+            handler:
+              async (
+                paymentResult,
+              ) => {
+                checkoutCompleted =
+                  true;
+
+                try {
+                  const verifyResponse =
+                    await registrationService
+                      .verifyPayment({
+                        gateway:
+                          "razorpay",
+
+                        student_id:
+                          studentId,
+
+                        razorpay_order_id:
+                          paymentResult
+                            .razorpay_order_id,
+
+                        razorpay_payment_id:
+                          paymentResult
+                            .razorpay_payment_id,
+
+                        razorpay_signature:
+                          paymentResult
+                            .razorpay_signature,
+                      });
+
+                  const verifiedPayment =
+                    verifyResponse
+                      .data.data;
+
+                  if (
+                    verifiedPayment
+                      .portal_registration_number
+                  ) {
+                    setPortalRegistrationNumber(
+                      verifiedPayment
+                        .portal_registration_number,
+                    );
+
+                    sessionStorage.setItem(
+                      "portal_registration_number",
+                      verifiedPayment
+                        .portal_registration_number,
+                    );
+                  }
+
+                  const receiptReference =
+                    verifiedPayment
+                      .transaction_id ||
+                    verifiedPayment
+                      .razorpay_payment_id ||
+                    verifiedPayment
+                      .razorpay_order_id ||
+                    null;
+
+                  if (
+                    receiptReference
+                  ) {
+                    setSuccessfulTransactionId(
+                      receiptReference,
+                    );
+
+                    sessionStorage.setItem(
+                      "razorpay_transaction_id",
+                      receiptReference,
+                    );
+                  }
+
+                  if (
+                    verifiedPayment
+                      .payment_status ===
+                    "paid"
+                  ) {
+                    toast.success(
+                      "Payment verified successfully. Your internship account is active.",
+                    );
+
+                    setBusy(false);
+                    setCompleted(true);
+
+                    return;
+                  }
+
+                  toast.info(
+                    "Payment received and is awaiting final confirmation.",
+                  );
+
+                  setBusy(false);
+                } catch (
+                  verifyError
+                ) {
+                  console.error(
+                    "RAZORPAY VERIFY ERROR:",
+                    verifyError,
+                  );
+
+                  toast.error(
+                    getErrorMessage(
+                      verifyError,
+                      "Payment was made but verification failed. Please contact support with your payment ID.",
+                    ),
+                  );
+
+                  setBusy(false);
+                }
+              },
+
+            modal: {
+              ondismiss: () => {
+                if (
+                  !checkoutCompleted
+                ) {
+                  setBusy(false);
+                }
+              },
+            },
+          });
+
+        razorpay.on(
+          "payment.failed",
+          (
+            failedResponse,
+          ) => {
+            console.error(
+              "RAZORPAY PAYMENT FAILED:",
+              failedResponse,
+            );
+
+            toast.error(
+              failedResponse
+                .error
+                ?.description ||
+                "Razorpay payment failed. Please try again.",
+            );
+
+            setBusy(false);
+          },
+        );
+
+        razorpay.open();
+
+        return;
+      }
+
+      /*
+       * -------------------------------------------------
+       * CASHFREE
+       * -------------------------------------------------
+       */
+      if (
+        order.gateway ===
+        "cashfree"
+      ) {
+        if (
+          !order.payment_session_id
+        ) {
+          throw new Error(
+            "Cashfree payment session ID is missing",
+          );
+        }
+
+        sessionStorage.setItem(
+          "cashfree_order_id",
+          order.order_id,
+        );
+
+        sessionStorage.removeItem(
+          "cashfree_transaction_id",
+        );
+
+        const cashfree =
+          await load({
+            mode:
+              process.env
+                .NEXT_PUBLIC_CASHFREE_MODE ===
+              "production"
+                ? "production"
+                : "sandbox",
+          });
+
+        await cashfree.checkout({
+          paymentSessionId:
+            order.payment_session_id,
+
+          redirectTarget:
+            "_self",
+        });
+
+        return;
+      }
+
+      throw new Error(
+        "Unsupported payment gateway returned by server",
+      );
     } catch (error) {
       console.error(
-        "CASHFREE CHECKOUT ERROR:",
+        "PAYMENT CHECKOUT ERROR:",
         error,
       );
 
       toast.error(
         getErrorMessage(
           error,
-          "Unable to start Cashfree payment",
+          "Unable to start payment",
         ),
       );
 
@@ -899,80 +1309,179 @@ await cashfree.checkout({
     }
   };
 
- 
+  const downloadReceipt =
+    async () => {
+      if (
+        !successfulTransactionId
+      ) {
+        toast.error(
+          "Payment receipt reference is missing",
+        );
+        return;
+      }
 
-  // if (completed) {
-  //   return (
-  //     <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#071a2f] p-5">
-  //       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_80%_80%,rgba(59,130,246,0.22),transparent_32%),linear-gradient(135deg,#061426_0%,#0a2848_55%,#0d3761_100%)]" />
+      setBusy(true);
 
-  //       <div className="relative z-10 w-full max-w-xl rounded-[2rem] border border-white/15 bg-white p-7 text-center shadow-2xl shadow-black/30 sm:p-10">
-  //         <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-emerald-100 text-emerald-600">
-  //           <CheckCircle2 className="h-11 w-11" />
-  //         </div>
+      try {
+        const response =
+          await registrationService
+            .downloadPaymentReceipt(
+              successfulTransactionId,
+            );
 
-  //         <p className="mt-6 text-xs font-black uppercase tracking-[0.25em] text-emerald-600">
-  //           Account Activated
-  //         </p>
+        const blob =
+          new Blob(
+            [response.data],
+            {
+              type:
+                "application/pdf",
+            },
+          );
 
-  //         <h1 className="mt-3 text-3xl font-black tracking-tight text-[#071a2f]">
-  //           Registration Complete
-  //         </h1>
+        const url =
+          window.URL
+            .createObjectURL(
+              blob,
+            );
 
-  //         <p className="mx-auto mt-3 max-w-md leading-7 text-slate-500">
-  //           Your internship account is now active. Login using username{" "}
-  //           <strong className="text-[#071a2f]">
-  //             {getValues("username")}
-  //           </strong>
-  //           .
-  //         </p>
+        const anchor =
+          document.createElement(
+            "a",
+          );
 
-  //         <div className="mt-7 rounded-2xl border border-emerald-100 bg-emerald-50 p-5 text-left">
-  //           <div className="flex items-start gap-3">
-  //             <BadgeCheck className="mt-0.5 h-6 w-6 shrink-0 text-emerald-600" />
-  //             <div>
-  //               <p className="font-bold text-emerald-900">
-  //                 Payment and registration verified
-  //               </p>
-  //               <p className="mt-1 text-sm leading-6 text-emerald-700">
-  //                 Keep your payment receipt for future reference.
-  //               </p>
-  //             </div>
-  //           </div>
-  //         </div>
+        anchor.href = url;
+        anchor.download =
+          `RK-Nexora-Payment-Receipt-${successfulTransactionId}.pdf`;
 
-  //         <div className="mt-7 grid gap-3 sm:grid-cols-2">
-  //           {/* <Button
-  //             variant="secondary"
-  //             className="h-12 rounded-xl"
-  //             onClick={downloadReceipt}
-  //             disabled={busy || !successfulTransactionId}
-  //           >
-  //             {busy ? (
-  //               <>
-  //                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-  //                 Downloading...
-  //               </>
-  //             ) : (
-  //               <>
-  //                 <FileText className="mr-2 h-4 w-4" />
-  //                 Download Receipt
-  //               </>
-  //             )}
-  //           </Button> */}
+        document.body
+          .appendChild(
+            anchor,
+          );
 
-  //           <Button
-  //             className="h-12 rounded-xl bg-[#071a2f] hover:bg-[#0b294b]"
-  //             onClick={() => router.push("/login")}
-  //           >
-  //             Go to Login
-  //             <ArrowRight className="ml-2 h-4 w-4" />
-  //           </Button>
-  //         </div>
-  //       </div>
-  //     </main>
-  //   );
-  // }
+        anchor.click();
+        anchor.remove();
+
+        window.URL
+          .revokeObjectURL(
+            url,
+          );
+
+        toast.success(
+          "Payment receipt downloaded",
+        );
+      } catch (error) {
+        console.error(
+          "RECEIPT DOWNLOAD ERROR:",
+          error,
+        );
+
+        toast.error(
+          getErrorMessage(
+            error,
+            "Unable to download payment receipt",
+          ),
+        );
+      } finally {
+        setBusy(false);
+      }
+    };
+
+
+  if (completed) {
+    return (
+      <main className="relative grid min-h-screen place-items-center overflow-hidden bg-[#071a2f] p-5">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.18),transparent_28%),radial-gradient(circle_at_80%_80%,rgba(59,130,246,0.22),transparent_32%),linear-gradient(135deg,#061426_0%,#0a2848_55%,#0d3761_100%)]" />
+
+        <div className="relative z-10 w-full max-w-xl rounded-[2rem] border border-white/15 bg-white p-7 text-center shadow-2xl shadow-black/30 sm:p-10">
+          <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+            <CheckCircle2 className="h-11 w-11" />
+          </div>
+
+          <p className="mt-6 text-xs font-black uppercase tracking-[0.25em] text-emerald-600">
+            Payment Successful
+          </p>
+
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-[#071a2f]">
+            Registration Complete
+          </h1>
+
+          <p className="mt-1 text-sm font-semibold text-blue-700">
+            पंजीकरण और भुगतान सफलतापूर्वक पूरा हुआ
+          </p>
+
+          <p className="mx-auto mt-4 max-w-md leading-7 text-slate-500">
+            Your payment has been verified and your internship account is now active.
+            Please download and keep your payment receipt for future reference.
+          </p>
+
+          {portalRegistrationNumber && (
+            <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
+                RK Nexora Registration Number
+              </p>
+
+              <p className="mt-2 text-xl font-black tracking-wide text-[#071a2f]">
+                {portalRegistrationNumber}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-5 text-left">
+            <div className="flex items-start gap-3">
+              <BadgeCheck className="mt-0.5 h-6 w-6 shrink-0 text-emerald-600" />
+
+              <div>
+                <p className="font-bold text-emerald-900">
+                  Payment and registration verified
+                </p>
+
+                <p className="mt-1 text-sm leading-6 text-emerald-700">
+                  Your receipt is generated from the verified server-side payment record.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-7 grid gap-3 sm:grid-cols-2">
+            <Button
+              variant="secondary"
+              className="h-12 rounded-xl"
+              onClick={downloadReceipt}
+              disabled={
+                busy ||
+                !successfulTransactionId
+              }
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Download Receipt
+                </>
+              )}
+            </Button>
+
+            <Button
+              className="h-12 rounded-xl bg-[#071a2f] hover:bg-[#0b294b]"
+              onClick={() =>
+                router.push(
+                  "/login",
+                )
+              }
+            >
+              Go to Login
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-50">
       {/* Top navigation */}
@@ -1991,13 +2500,13 @@ await cashfree.checkout({
                       </p>
 
                       <p className="mt-1 text-xs leading-5 text-emerald-700">
-                        You will be redirected to Cashfree&apos;s secure
-                        checkout. Your account will activate only after
-                        server-side payment verification.
+                        You will be redirected to our secure payment gateway.
+                        Your account will activate only after server-side
+                        payment verification.
                       </p>
 
                       <p className="mt-1 text-xs leading-5 text-emerald-600">
-                        आपको Cashfree के सुरक्षित भुगतान पेज पर भेजा जाएगा।
+                        आपको सुरक्षित ऑनलाइन भुगतान पेज पर भेजा जाएगा।
                         भुगतान सत्यापित होने के बाद ही आपका खाता सक्रिय होगा।
                       </p>
                     </div>
