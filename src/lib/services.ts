@@ -3128,23 +3128,114 @@ export const registrationService = {
    * - Razorpay registration page calls:
    *     verifyPayment({ gateway: "razorpay", ... })
    */
-  verifyPayment: (
+  verifyPayment: async (
     payload:
       | string
       | PaymentVerificationPayload,
-  ) =>
-    publicApi.post<
-      ApiResponse<PaymentVerificationResponse>
-    >(
-      "/registration/payment/verify",
-      typeof payload ===
-      "string"
+  ) => {
+    const requestPayload =
+      typeof payload === "string"
         ? {
-            order_id:
-              payload,
+            order_id: payload,
           }
-        : payload,
-    ),
+        : payload;
+
+    const isRazorpayRequest =
+      typeof payload !== "string" &&
+      payload.gateway === "razorpay";
+
+    /*
+     * Cashfree ka existing flow same rahega.
+     * Retry sirf Razorpay ke liye hai because
+     * callback ke turant baad payment kabhi
+     * authorized hota hai aur thodi der baad
+     * captured hota hai.
+     */
+    if (!isRazorpayRequest) {
+      return publicApi.post<
+        ApiResponse<PaymentVerificationResponse>
+      >(
+        "/registration/payment/verify",
+        requestPayload,
+      );
+    }
+
+    const maxAttempts = 5;
+    const retryDelayMs = 2000;
+
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => {
+        setTimeout(
+          resolve,
+          ms,
+        );
+      });
+
+    for (
+      let attempt = 1;
+      attempt <= maxAttempts;
+      attempt += 1
+    ) {
+      try {
+        const response =
+          await publicApi.post<
+            ApiResponse<PaymentVerificationResponse>
+          >(
+            "/registration/payment/verify",
+            requestPayload,
+          );
+
+        const paymentStatus =
+          String(
+            response.data?.data
+              ?.payment_status ||
+              "",
+          ).toLowerCase();
+
+        if (
+          paymentStatus === "paid" ||
+          paymentStatus === "failed" ||
+          attempt === maxAttempts
+        ) {
+          return response;
+        }
+
+        await wait(
+          retryDelayMs,
+        );
+      } catch (error: unknown) {
+        const status =
+          (
+            error as {
+              response?: {
+                status?: number;
+              };
+            }
+          ).response?.status;
+
+        const retryable =
+          !status ||
+          status === 408 ||
+          status === 429 ||
+          status >= 500;
+
+        if (
+          !retryable ||
+          attempt === maxAttempts
+        ) {
+          throw error;
+        }
+
+        await wait(
+          retryDelayMs,
+        );
+      }
+    }
+
+    throw new Error(
+      "Unable to verify Razorpay payment",
+    );
+  },
 
   downloadPaymentReceipt: (
     transactionId: string,
