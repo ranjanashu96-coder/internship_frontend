@@ -3037,6 +3037,7 @@ export type PaymentVerificationPayload =
   | RazorpayVerificationPayload;
 
 export interface PaymentVerificationResponse {
+  cf_payment_id: string | null | undefined;
   gateway?: "cashfree" | "razorpay";
   order_id: string;
   cf_order_id?: string | number | null;
