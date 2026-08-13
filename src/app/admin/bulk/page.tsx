@@ -914,110 +914,150 @@ export default function Page() {
       }
     };
 
-const loadStudents =
-  async () => {
-    setLoadingStudents(true);
+const loadStudents = async () => {
+  setLoadingStudents(true);
 
-    clearPreview();
+  clearPreview();
 
-    try {
-      const params:
-        AdminListParams & {
-          sector_id?:
-            | number
-            | string;
-        } = {
-          page: 1,
-          limit: 100,
+  try {
+    const baseParams:
+      AdminListParams & {
+        sector_id?: number | string;
+      } = {
+        search:
+          form.search || undefined,
 
-          search:
-            form.search ||
-            undefined,
+        college_id:
+          form.college_id || undefined,
 
-          college_id:
-            form.college_id ||
-            undefined,
+        sector_id:
+          form.sector_id || undefined,
 
-          sector_id:
-            form.sector_id ||
-            undefined,
+        domain_id:
+          form.domain_id || undefined,
 
-          domain_id:
-            form.domain_id ||
-            undefined,
+        session:
+          form.session || undefined,
 
-          session:
-            form.session ||
-            undefined,
+        semester:
+          form.semester || undefined,
 
-          semester:
-            form.semester ||
-            undefined,
+        batch_id:
+          form.batch_id || undefined,
 
-          batch_id:
-            form.batch_id ||
-            undefined,
+        mentor_id:
+          form.mentor_id || undefined,
 
-          mentor_id:
-            form.mentor_id ||
-            undefined,
+        // Sirf active internship
+        status: "active",
 
-          // Sirf active internship
-          status: "active",
+        // Sirf paid students
+        payment_status: "paid",
+      };
 
-          // Sirf paid students
-          payment_status: "paid",
-        };
+    /*
+     * Backend maximum 100 students
+     * per page return karta hai.
+     *
+     * Isliye Bulk page saare pages
+     * automatically fetch karega.
+     */
+    const firstResponse =
+      await adminService.students({
+        ...baseParams,
+        page: 1,
+        limit: 100,
+      });
 
-      const response =
-        await adminService.students(
-          params,
-        );
+    const firstData =
+      firstResponse.data.data;
 
-      /*
-       * Frontend safety filter:
-       * Backend galti se extra student bheje
-       * tab bhi list me nahi dikhega.
-       */
-      const eligibleStudents =
-        (
-          response.data.data.items ||
-          []
-        ).filter(
-          (student) =>
-            student.payment_status ===
-              "paid" &&
-            student.internship_status ===
-              "active",
-        );
+    let allStudents: Student[] = [
+      ...(firstData.items || []),
+    ];
 
-      setStudents(
-        eligibleStudents,
-      );
+    const totalPages =
+      Number(firstData.totalPages || 1);
 
-      setSelectedStudents(
-        [],
-      );
+    /*
+     * Remaining pages fetch karo
+     */
+    if (totalPages > 1) {
+      const requests = [];
 
-      if (
-        eligibleStudents.length === 0
+      for (
+        let page = 2;
+        page <= totalPages;
+        page += 1
       ) {
-        toast.info(
-          "No paid and active students found",
+        requests.push(
+          adminService.students({
+            ...baseParams,
+            page,
+            limit: 100,
+          }),
         );
       }
-    } catch (error) {
-      toast.error(
-        getErrorMessage(
-          error,
-        ),
+
+      const responses =
+        await Promise.all(requests);
+
+      for (const response of responses) {
+        allStudents = [
+          ...allStudents,
+          ...(response.data.data.items || []),
+        ];
+      }
+    }
+
+    /*
+     * Extra frontend safety
+     */
+    const eligibleStudents =
+      allStudents.filter(
+        (student) =>
+          student.payment_status ===
+            "paid" &&
+          student.internship_status ===
+            "active",
       );
-    } finally {
-      setLoadingStudents(
-        false,
+
+    /*
+     * Duplicate IDs safety
+     */
+    const uniqueStudents =
+      Array.from(
+        new Map(
+          eligibleStudents.map(
+            (student) => [
+              student.id,
+              student,
+            ],
+          ),
+        ).values(),
+      );
+
+    setStudents(uniqueStudents);
+
+    setSelectedStudents([]);
+
+    if (uniqueStudents.length === 0) {
+      toast.info(
+        "No paid and active students found",
+      );
+    } else {
+      toast.success(
+        `${uniqueStudents.length} eligible students loaded`,
       );
     }
-  };
+  } catch (error) {
+    toast.error(
+      getErrorMessage(error),
+    );
+  } finally {
+    setLoadingStudents(false);
+  }
+};
 
   const loadJobs =
     async () => {
