@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type ChangeEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -13,6 +14,7 @@ import {
 import {
   ArrowLeft,
   Building2,
+  Camera,
   CalendarDays,
   Check,
   Edit3,
@@ -334,6 +336,12 @@ export default function StudentDetailsPage() {
     setEditMode,
   ] = useState(false);
 
+  const [photoFile, setPhotoFile] =
+    useState<File | null>(null);
+
+  const [photoPreview, setPhotoPreview] =
+    useState<string | null>(null);
+
   /*
   |--------------------------------------------------------------------------
   | Load student and dropdown data
@@ -448,7 +456,43 @@ export default function StudentDetailsPage() {
       );
     }
 
+    if (photoPreview) {
+      URL.revokeObjectURL(photoPreview);
+    }
+
+    setPhotoFile(null);
+    setPhotoPreview(null);
+
     setEditMode(false);
+  };
+
+  const handlePhotoChange = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Photo size must be 2 MB or less");
+      event.target.value = "";
+      return;
+    }
+
+    if (photoPreview) {
+      URL.revokeObjectURL(photoPreview);
+    }
+
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
   };
 
   /*
@@ -621,10 +665,40 @@ export default function StudentDetailsPage() {
             null,
         };
 
+        let requestPayload:
+          | typeof payload
+          | FormData = payload;
+
+        if (photoFile) {
+          const multipartPayload = new FormData();
+
+          Object.entries(payload).forEach(
+            ([key, value]) => {
+              if (
+                value !== null &&
+                value !== undefined
+              ) {
+                multipartPayload.append(
+                  key,
+                  String(value),
+                );
+              }
+            },
+          );
+
+          // Backend multer field name must also be `photo`.
+          multipartPayload.append(
+            "photo",
+            photoFile,
+          );
+
+          requestPayload = multipartPayload;
+        }
+
         const response =
           await adminService.updateStudent(
             studentId,
-            payload,
+            requestPayload as any,
           );
 
         const updatedStudent =
@@ -647,6 +721,13 @@ export default function StudentDetailsPage() {
         );
 
         setEditMode(false);
+
+        if (photoPreview) {
+          URL.revokeObjectURL(photoPreview);
+        }
+
+        setPhotoFile(null);
+        setPhotoPreview(null);
 
         await loadData();
       } catch (error: any) {
@@ -821,9 +902,10 @@ export default function StudentDetailsPage() {
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <StudentPhoto
-  photo={student.photo}
-  name={student.name}
-/>
+                photo={student.photo}
+                previewUrl={photoPreview}
+                name={student.name}
+              />
 
               <div>
                 <h1 className="text-2xl font-bold">
@@ -920,6 +1002,43 @@ export default function StudentDetailsPage() {
           <UserRound className="h-5 w-5" />
         }
       >
+        <FormField label="Student Photo">
+          <div className="flex items-center gap-4">
+            <StudentPhotoEditor
+              photo={student.photo}
+              previewUrl={photoPreview}
+              name={formData.name || student.name}
+            />
+
+            <div>
+              <label
+                className={`inline-flex h-10 items-center rounded-lg px-4 text-sm font-medium transition ${
+                  editMode
+                    ? "cursor-pointer bg-slate-900 text-white hover:bg-slate-700"
+                    : "cursor-not-allowed bg-slate-100 text-slate-400"
+                }`}
+              >
+                <Camera className="mr-2 h-4 w-4" />
+                {photoFile
+                  ? "Change Photo"
+                  : "Choose Photo"}
+
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={!editMode || saving}
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
+              </label>
+
+              <p className="mt-2 text-xs text-slate-500">
+                JPG, PNG or WebP, maximum 2 MB.
+              </p>
+            </div>
+          </div>
+        </FormField>
+
         <FormField
           label="Registration Number"
           required
@@ -1550,16 +1669,22 @@ function PaymentStatusBadge({
 
 function StudentPhoto({
   photo,
+  previewUrl,
   name,
 }: {
   photo?: string | null;
+  previewUrl?: string | null;
   name: string;
 }) {
   const [imageFailed, setImageFailed] =
     useState(false);
 
   const photoUrl =
-    getStudentPhotoUrl(photo);
+    previewUrl || getStudentPhotoUrl(photo);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [photoUrl]);
 
   return (
     <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white/10">
@@ -1574,6 +1699,41 @@ function StudentPhoto({
         />
       ) : (
         <UserRound className="h-8 w-8" />
+      )}
+    </div>
+  );
+}
+
+function StudentPhotoEditor({
+  photo,
+  previewUrl,
+  name,
+}: {
+  photo?: string | null;
+  previewUrl?: string | null;
+  name: string;
+}) {
+  const [imageFailed, setImageFailed] =
+    useState(false);
+
+  const photoUrl =
+    previewUrl || getStudentPhotoUrl(photo);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [photoUrl]);
+
+  return (
+    <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 text-slate-400">
+      {photoUrl && !imageFailed ? (
+        <img
+          src={photoUrl}
+          alt={`${name} photo preview`}
+          className="h-full w-full object-cover"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <UserRound className="h-9 w-9" />
       )}
     </div>
   );

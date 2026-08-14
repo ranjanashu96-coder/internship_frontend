@@ -1080,7 +1080,10 @@ removeStudentsFromMentor: (
       data,
     ),
 
-  updateStudent: (id: number, data: object) =>
+  updateStudent: (
+    id: number,
+    data: FormData | Record<string, unknown>,
+  ) =>
     api.put<ApiResponse<Student>>(
       `/admin/students/${id}`,
       data,
