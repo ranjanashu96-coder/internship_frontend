@@ -1112,6 +1112,29 @@ removeStudentsFromMentor: (
       start_date: startDate,
     },
   ),
+  startStudentInternshipsBulk: (
+    studentIds: number[],
+    startDate: string,
+  ) =>
+    api.patch<
+      ApiResponse<{
+        requested_count: number;
+        started_count: number;
+        failed_count: number;
+        started_ids: number[];
+        errors: Array<{
+          student_id: number;
+          name?: string;
+          message: string;
+        }>;
+      }>
+    >(
+      "/admin/students/start-internship/bulk",
+      {
+        student_ids: studentIds,
+        start_date: startDate,
+      },
+    ),
     importStudents: (
   collegeId: number,
   file: File,
