@@ -944,6 +944,24 @@ updatePayment: (
     data,
   ),
 
+generatePaymentReceipt: (paymentId: number) =>
+  api.post<
+    ApiResponse<{
+      payment_id: number;
+      transaction_id?: string | null;
+      receipt_number: string;
+      receipt_file_name: string;
+    }>
+  >(
+    `/admin/payments/${paymentId}/generate-receipt`,
+  ),
+
+downloadPaymentReceipt: (paymentId: number) =>
+  api.get<Blob>(
+    `/admin/payments/${paymentId}/receipt`,
+    { responseType: "blob" },
+  ),
+
   /*
   |--------------------------------------------------------------------------
   | Colleges

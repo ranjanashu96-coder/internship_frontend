@@ -18,6 +18,7 @@ export default function AdminPaymentsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [receiptActionId, setReceiptActionId] = useState<number | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<AdminPaymentRow | null>(null);
   const [editingPayment, setEditingPayment] = useState<AdminPaymentRow | null>(null);
 
@@ -65,6 +66,38 @@ export default function AdminPaymentsPage() {
       toast.error(error?.response?.data?.message ?? "Payment could not be updated");
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const generateReceipt = async (payment: AdminPaymentRow) => {
+    try {
+      setReceiptActionId(payment.id);
+      const response = await adminService.generatePaymentReceipt(payment.id);
+      toast.success(response.data.message || "Receipt generated successfully");
+      await loadPayments();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "Receipt could not be generated");
+    } finally {
+      setReceiptActionId(null);
+    }
+  };
+
+  const downloadReceipt = async (payment: AdminPaymentRow) => {
+    try {
+      setReceiptActionId(payment.id);
+      const response = await adminService.downloadPaymentReceipt(payment.id);
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `receipt-${payment.student?.registration_number || payment.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? "Receipt download failed");
+    } finally {
+      setReceiptActionId(null);
     }
   };
 
@@ -126,7 +159,7 @@ export default function AdminPaymentsPage() {
                   <td className="px-4 py-4"><p className="capitalize">{payment.payment_method || "—"}</p><p className="mt-1 text-xs text-slate-500">{formatDate(payment.paid_at || payment.created_at || payment.createdAt)}</p>{payment.payment_message && <p className="mt-1 max-w-[180px] text-xs text-slate-400">{payment.payment_message}</p>}</td>
                   <td className="px-4 py-4"><p className="font-medium">{payment.receipt_number || "Not generated"}</p>{payment.receipt_generated_at && <p className="mt-1 text-xs text-slate-500">{formatDate(payment.receipt_generated_at)}</p>}</td>
                   <td className="px-4 py-4"><div className="space-y-2"><Badge tone={payment.student?.payment_status === "paid" ? "green" : "slate"}>{payment.student?.payment_status || "unknown"}</Badge><div><Badge tone={payment.student?.internship_status === "active" ? "blue" : "slate"}>{payment.student?.internship_status || "unknown"}</Badge></div></div></td>
-                  <td className="px-4 py-4 text-right"><div className="flex justify-end gap-2"><Button type="button" variant="secondary" className="h-9 px-3 text-xs" onClick={() => setSelectedPayment(payment)}>Details</Button><Button type="button" variant="secondary" className="h-9 px-3 text-xs" onClick={() => setEditingPayment(payment)}>Edit</Button>{payment.status === "created" && <Button type="button" className="h-9 whitespace-nowrap px-3 text-xs" disabled={updatingId === payment.id} onClick={() => void markAsPaid(payment)}>{updatingId === payment.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}Mark Paid</Button>}</div></td>
+                  <td className="px-4 py-4 text-right"><div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="secondary" className="h-9 px-3 text-xs" onClick={() => setSelectedPayment(payment)}>Details</Button><Button type="button" variant="secondary" className="h-9 px-3 text-xs" onClick={() => setEditingPayment(payment)}>Edit</Button>{["success", "paid"].includes(payment.status) && (payment.receipt_number ? <Button type="button" variant="secondary" className="h-9 px-3 text-xs" disabled={receiptActionId === payment.id} onClick={() => void downloadReceipt(payment)}>{receiptActionId === payment.id && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Download Receipt</Button> : <Button type="button" variant="secondary" className="h-9 px-3 text-xs" disabled={receiptActionId === payment.id} onClick={() => void generateReceipt(payment)}>{receiptActionId === payment.id && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Generate Receipt</Button>)}{payment.status === "created" && <Button type="button" className="h-9 whitespace-nowrap px-3 text-xs" disabled={updatingId === payment.id} onClick={() => void markAsPaid(payment)}>{updatingId === payment.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}Mark Paid</Button>}</div></td>
                 </tr>
               ))}</tbody>
             </table>
