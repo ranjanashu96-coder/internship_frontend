@@ -240,6 +240,60 @@ export interface AdminStudentImportResult {
   errors: AdminStudentImportError[];
 }
 
+export interface AdminPaymentStudent {
+  id: number;
+  registration_number: string;
+  student_id?: string | null;
+  name: string;
+  email?: string | null;
+  mobile?: string | null;
+  payment_status: string;
+  internship_status: string;
+}
+
+export interface AdminPaymentRow {
+  id: number;
+  student_id: number;
+  transaction_id: string;
+  order_id?: string | null;
+  cashfree_order_id?: string | null;
+  cf_order_id?: string | null;
+  cf_payment_id?: string | null;
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
+  razorpay_signature?: string | null;
+  gateway?: string | null;
+  amount: number | string;
+  currency?: string | null;
+  status: string;
+  paid_at?: string | null;
+  payment_method?: string | null;
+  payment_message?: string | null;
+  failure_reason?: string | null;
+  receipt_path?: string | null;
+  receipt_generated_at?: string | null;
+  receipt_number?: string | null;
+  gateway_payload?: Record<string, unknown> | string | null;
+  created_at?: string | null;
+  createdAt?: string | null;
+  student: AdminPaymentStudent | null;
+  can_mark_success: boolean;
+}
+
+export interface AdminPaymentsData {
+  items: AdminPaymentRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  summary: {
+    total: number;
+    created: number;
+    success: number;
+    failed: number;
+  };
+}
+
 export interface CollegeDomainFeeItem {
   id: number;
   sector_id: number;
@@ -852,6 +906,42 @@ exportReport: (
       },
       responseType: "blob",
     },
+  ),
+
+payments: (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+}) =>
+  api.get<ApiResponse<AdminPaymentsData>>(
+    "/admin/payments",
+    { params },
+  ),
+
+markPaymentSuccessful: (
+  paymentId: number,
+  reason: string,
+) =>
+  api.patch<
+    ApiResponse<{
+      payment_id: number;
+      transaction_id: string;
+      payment_status: string;
+      student: AdminPaymentStudent;
+    }>
+  >(
+    `/admin/payments/${paymentId}/mark-success`,
+    { reason },
+  ),
+
+updatePayment: (
+  paymentId: number,
+  data: Partial<Omit<AdminPaymentRow, "id" | "student_id" | "student" | "can_mark_success">>,
+) =>
+  api.patch<ApiResponse<AdminPaymentRow>>(
+    `/admin/payments/${paymentId}`,
+    data,
   ),
 
   /*

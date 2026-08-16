@@ -101,6 +101,11 @@ const adminMenu = mapMenu([
     "/admin/reports",
     FileText,
   ],
+  [
+    "Payment Reconciliation",
+    "/admin/payments",
+    FileText,
+  ],
 ]);
 
 const collegeMenu = mapMenu([
