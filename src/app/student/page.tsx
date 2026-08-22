@@ -17,6 +17,8 @@ import {
   Trophy,
   Clock3,
    LockKeyhole,
+   Megaphone,
+Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,6 +27,7 @@ import AttendanceCheckInCard from "@/components/student/AttendanceCheckInCard";
 import { Button } from "@/components/ui";
 import {
   studentService,
+  notificationService,
   type StudentDashboardData,
   type StudentRecentActivity,
 } from "@/lib/services";
@@ -280,6 +283,11 @@ export default function StudentDashboardPage() {
     setError,
   ] = useState("");
 
+  const [
+  adminMessages,
+  setAdminMessages,
+] = useState<any[]>([]);
+
   const loadDashboard = async () => {
     try {
       setLoading(true);
@@ -305,8 +313,68 @@ export default function StudentDashboardPage() {
     }
   };
 
+const loadAdminMessages = async () => {
+  try {
+    const response =
+      await notificationService.list(
+        1,
+        50,
+      );
+
+    const items =
+      response.data.data?.items || [];
+
+    console.log(
+      "ALL NOTIFICATIONS:",
+      items,
+    );
+
+    const messages =
+      items.filter(
+        (item: any) => {
+          let metadata =
+            item.metadata;
+
+          // Agar metadata JSON string hai
+          if (
+            typeof metadata ===
+            "string"
+          ) {
+            try {
+              metadata =
+                JSON.parse(
+                  metadata,
+                );
+            } catch {
+              metadata = {};
+            }
+          }
+
+          return (
+            metadata?.source ===
+            "admin_message"
+          );
+        },
+      );
+
+    console.log(
+      "ADMIN MESSAGES:",
+      messages,
+    );
+
+    setAdminMessages(
+      messages,
+    );
+  } catch (error) {
+    console.error(
+      "Unable to load admin messages:",
+      error,
+    );
+  }
+};
   useEffect(() => {
     void loadDashboard();
+     void loadAdminMessages();
   }, []);
 
   if (loading) {
@@ -440,6 +508,102 @@ const internshipDisplayStatus =
 </div>
   </div>
 </section>
+
+{adminMessages.length >
+  0 && (
+  <section className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm">
+
+    <div className="flex items-center gap-3 border-b border-blue-100 bg-blue-50 px-5 py-4">
+
+      <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-600 text-white">
+        <Megaphone
+          size={20}
+        />
+      </div>
+
+      <div>
+        <h2 className="font-bold text-slate-900">
+          Admin Announcements
+        </h2>
+
+        <p className="text-xs text-slate-500">
+          Important messages
+          from RK Nexora
+        </p>
+      </div>
+
+    </div>
+
+
+    <div className="divide-y divide-slate-100">
+
+      {adminMessages
+        .slice(0, 5)
+        .map(
+          (
+            item: any,
+          ) => (
+            <div
+              key={
+                item.id
+              }
+              className="p-5"
+            >
+
+              <div className="flex items-start gap-3">
+
+                <div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-blue-50 text-blue-600">
+                  <Bell
+                    size={
+                      17
+                    }
+                  />
+                </div>
+
+                <div className="min-w-0 flex-1">
+
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+
+                    <h3 className="font-bold text-slate-900">
+                      {
+                        item.title
+                      }
+                    </h3>
+
+                    {!item.read_at &&
+                      !item.is_read && (
+                        <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-blue-700">
+                          New
+                        </span>
+                      )}
+
+                  </div>
+
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                    {
+                      item.message
+                    }
+                  </p>
+
+                  <p className="mt-3 text-xs text-slate-400">
+                    {formatDate(
+                      item.created_at ||
+                        item.createdAt,
+                    )}
+                  </p>
+
+                </div>
+
+              </div>
+
+            </div>
+          ),
+        )}
+
+    </div>
+
+  </section>
+)}
 
 {internshipStarted ? (
   <AttendanceCheckInCard

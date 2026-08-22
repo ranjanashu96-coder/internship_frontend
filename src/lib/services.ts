@@ -877,6 +877,89 @@ const createChapterResourceFormData = (
   return formData;
 };
 
+export interface AdminMessageStudent {
+  id: number;
+
+  registration_number:
+    string;
+
+  student_id?:
+    string | null;
+
+  name: string;
+
+  email?:
+    string | null;
+
+  mobile?:
+    string | null;
+
+  payment_status:
+    string;
+
+  internship_status:
+    string;
+
+  college?: {
+    id: number;
+    name: string;
+    code?: string | null;
+  } | null;
+
+  domain?: {
+    id: number;
+    domain_name: string;
+  } | null;
+}
+
+export interface AdminMessageStudentsData {
+  items:
+    AdminMessageStudent[];
+
+  total: number;
+}
+
+export interface SendAdminMessagePayload {
+  title: string;
+
+  message: string;
+
+  mode:
+    | "all"
+    | "selected";
+
+  student_ids?: number[];
+}
+
+export interface SendAdminMessageResponse {
+  recipient_mode:
+    | "all"
+    | "selected";
+
+  requested_count:
+    number;
+
+  sent_count:
+    number;
+
+  failed_count:
+    number;
+
+  sent_student_ids:
+    number[];
+
+  failed: Array<{
+    student_id:
+      number;
+
+    name?:
+      string;
+
+    message:
+      string;
+  }>;
+}
+
 
 export const adminService = {
 
@@ -917,6 +1000,37 @@ payments: (params?: {
   api.get<ApiResponse<AdminPaymentsData>>(
     "/admin/payments",
     { params },
+  ),
+
+  /*
+|--------------------------------------------------------------------------
+| Admin Messages
+|--------------------------------------------------------------------------
+*/
+
+messagePaidStudents: (
+  search = "",
+) =>
+  api.get<
+    ApiResponse<AdminMessageStudentsData>
+  >(
+    "/admin/messages/paid-students",
+    {
+      params: {
+        search:
+          search || undefined,
+      },
+    },
+  ),
+
+sendStudentMessage: (
+  data: SendAdminMessagePayload,
+) =>
+  api.post<
+    ApiResponse<SendAdminMessageResponse>
+  >(
+    "/admin/messages/send",
+    data,
   ),
 
 markPaymentSuccessful: (

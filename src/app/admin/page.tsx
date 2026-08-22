@@ -22,7 +22,13 @@ import {
   UserCheck,
   UserRoundX,
   Users,
+  MessageSquare,
+  Send,
+  Search,
+  X,
 } from "lucide-react";
+
+import { toast } from "sonner";
 
 import {
   BarAnalytics,
@@ -41,6 +47,7 @@ import {
 import {
   adminService,
   type AdminDashboardData,
+    type AdminMessageStudent,
 } from "@/lib/services";
 
 const numberFormatter =
@@ -116,6 +123,58 @@ export default function AdminDashboardPage() {
     refreshing,
     setRefreshing,
   ] = useState(false);
+
+  const [
+  messageOpen,
+  setMessageOpen,
+] = useState(false);
+
+const [
+  messageTitle,
+  setMessageTitle,
+] = useState("");
+
+const [
+  messageText,
+  setMessageText,
+] = useState("");
+
+const [
+  recipientMode,
+  setRecipientMode,
+] =
+  useState<
+    "all" | "selected"
+  >("all");
+
+const [
+  paidStudents,
+  setPaidStudents,
+] =
+  useState<
+    AdminMessageStudent[]
+  >([]);
+
+const [
+  selectedStudentIds,
+  setSelectedStudentIds,
+] =
+  useState<number[]>([]);
+
+const [
+  studentSearch,
+  setStudentSearch,
+] = useState("");
+
+const [
+  loadingStudents,
+  setLoadingStudents,
+] = useState(false);
+
+const [
+  sendingMessage,
+  setSendingMessage,
+] = useState(false);
 
   const [
     error,
@@ -211,6 +270,196 @@ export default function AdminDashboardPage() {
     dashboard?.recent_students ??
     [];
 
+  const loadPaidStudents =
+  async () => {
+    try {
+      setLoadingStudents(true);
+
+      const response =
+        await adminService
+          .messagePaidStudents(
+            studentSearch,
+          );
+
+      setPaidStudents(
+        response.data.data
+          .items || [],
+      );
+    } catch (requestError: any) {
+      toast.error(
+        requestError
+          ?.response
+          ?.data
+          ?.message ||
+          "Unable to load paid students",
+      );
+    } finally {
+      setLoadingStudents(
+        false,
+      );
+    }
+  };
+
+
+const openMessageBox =
+  async () => {
+    setMessageOpen(true);
+
+    if (
+      recipientMode ===
+      "selected"
+    ) {
+      await loadPaidStudents();
+    }
+  };
+
+
+const toggleStudent =
+  (studentId: number) => {
+    setSelectedStudentIds(
+      (current) =>
+        current.includes(
+          studentId,
+        )
+          ? current.filter(
+              (id) =>
+                id !== studentId,
+            )
+          : [
+              ...current,
+              studentId,
+            ],
+    );
+  };
+
+
+const toggleAllVisible =
+  () => {
+    const visibleIds =
+      paidStudents.map(
+        (student) =>
+          student.id,
+      );
+
+    const allSelected =
+      visibleIds.every(
+        (id) =>
+          selectedStudentIds.includes(
+            id,
+          ),
+      );
+
+    if (allSelected) {
+      setSelectedStudentIds(
+        (current) =>
+          current.filter(
+            (id) =>
+              !visibleIds.includes(
+                id,
+              ),
+          ),
+      );
+
+      return;
+    }
+
+    setSelectedStudentIds(
+      (current) => [
+        ...new Set([
+          ...current,
+          ...visibleIds,
+        ]),
+      ],
+    );
+  };
+
+
+const handleSendMessage =
+  async () => {
+    const title =
+      messageTitle.trim();
+
+    const message =
+      messageText.trim();
+
+    if (!title) {
+      toast.error(
+        "Enter message title",
+      );
+
+      return;
+    }
+
+    if (!message) {
+      toast.error(
+        "Enter message",
+      );
+
+      return;
+    }
+
+    if (
+      recipientMode ===
+        "selected" &&
+      selectedStudentIds.length ===
+        0
+    ) {
+      toast.error(
+        "Select at least one student",
+      );
+
+      return;
+    }
+
+    try {
+      setSendingMessage(true);
+
+      const response =
+        await adminService
+          .sendStudentMessage({
+            title,
+            message,
+            mode:
+              recipientMode,
+
+            student_ids:
+              recipientMode ===
+              "selected"
+                ? selectedStudentIds
+                : undefined,
+          });
+
+      const result =
+        response.data.data;
+
+      toast.success(
+        `Message sent to ${result.sent_count} student(s)`,
+      );
+
+      setMessageTitle("");
+      setMessageText("");
+      setSelectedStudentIds(
+        [],
+      );
+      setRecipientMode(
+        "all",
+      );
+      setMessageOpen(false);
+    } catch (requestError: any) {
+      toast.error(
+        requestError
+          ?.response
+          ?.data
+          ?.message ||
+          "Unable to send message",
+      );
+    } finally {
+      setSendingMessage(
+        false,
+      );
+    }
+  };
+
   if (loading) {
     return (
       <div className="grid min-h-[65vh] place-items-center">
@@ -267,42 +516,58 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Page heading */}
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
-            Admin Dashboard
-          </h1>
+     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+  <div>
+    <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+      Admin Dashboard
+    </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Monitor colleges,
-            mentors, students,
-            payments and internship
-            performance.
-          </p>
-        </div>
+    <p className="mt-1 text-sm text-slate-500">
+      Monitor colleges,
+      mentors, students,
+      payments and internship
+      performance.
+    </p>
+  </div>
 
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={refreshing}
-          onClick={() => {
-            void loadDashboard(
-              true,
-            );
-          }}
-        >
-          <RefreshCcw
-            size={16}
-            className={`mr-2 ${
-              refreshing
-                ? "animate-spin"
-                : ""
-            }`}
-          />
+  <div className="flex flex-wrap gap-2">
+    <Button
+      type="button"
+      onClick={() => {
+        void openMessageBox();
+      }}
+    >
+      <MessageSquare
+        size={16}
+        className="mr-2"
+      />
 
-          Refresh
-        </Button>
-      </div>
+      Send Message
+    </Button>
+
+    <Button
+      type="button"
+      variant="secondary"
+      disabled={refreshing}
+      onClick={() => {
+        void loadDashboard(
+          true,
+        );
+      }}
+    >
+      <RefreshCcw
+        size={16}
+        className={`mr-2 ${
+          refreshing
+            ? "animate-spin"
+            : ""
+        }`}
+      />
+
+      Refresh
+    </Button>
+  </div>
+</div>
 
       {error && (
         <div className="flex items-center gap-3 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
@@ -792,6 +1057,407 @@ export default function AdminDashboardPage() {
           </div>
         </section>
       </div>
+      {messageOpen && (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+
+    <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+
+      {/* Header */}
+
+      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">
+            Send Student Message
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Message will only be
+            sent to paid students.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() =>
+            setMessageOpen(
+              false,
+            )
+          }
+          className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+
+      {/* Body */}
+
+      <div className="flex-1 space-y-5 overflow-y-auto p-6">
+
+        {/* Title */}
+
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
+            Message Title
+          </label>
+
+          <input
+            value={
+              messageTitle
+            }
+            onChange={(event) =>
+              setMessageTitle(
+                event.target
+                  .value,
+              )
+            }
+            maxLength={150}
+            placeholder="Example: Important Internship Notice"
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          />
+        </div>
+
+
+        {/* Message */}
+
+        <div>
+          <label className="mb-2 block text-sm font-semibold text-slate-700">
+            Message
+          </label>
+
+          <textarea
+            value={
+              messageText
+            }
+            onChange={(event) =>
+              setMessageText(
+                event.target
+                  .value,
+              )
+            }
+            rows={5}
+            maxLength={5000}
+            placeholder="Type your message here..."
+            className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          />
+
+          <p className="mt-1 text-right text-xs text-slate-400">
+            {
+              messageText.length
+            }
+            /5000
+          </p>
+        </div>
+
+
+        {/* Recipient Mode */}
+
+        <div>
+          <label className="mb-3 block text-sm font-semibold text-slate-700">
+            Send To
+          </label>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+
+            <button
+              type="button"
+              onClick={() => {
+                setRecipientMode(
+                  "all",
+                );
+
+                setSelectedStudentIds(
+                  [],
+                );
+              }}
+              className={`rounded-xl border p-4 text-left transition ${
+                recipientMode ===
+                "all"
+                  ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500"
+                  : "border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <p className="font-semibold text-slate-900">
+                All Paid Students
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                Message all students
+                whose payment is paid.
+              </p>
+            </button>
+
+
+            <button
+              type="button"
+              onClick={() => {
+                setRecipientMode(
+                  "selected",
+                );
+
+                if (
+                  !paidStudents
+                    .length
+                ) {
+                  void loadPaidStudents();
+                }
+              }}
+              className={`rounded-xl border p-4 text-left transition ${
+                recipientMode ===
+                "selected"
+                  ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500"
+                  : "border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <p className="font-semibold text-slate-900">
+                Selected Students
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                Select specific paid
+                students.
+              </p>
+            </button>
+
+          </div>
+        </div>
+
+
+        {/* Selected Student List */}
+
+        {recipientMode ===
+          "selected" && (
+          <div className="overflow-hidden rounded-xl border border-slate-200">
+
+            <div className="border-b border-slate-200 bg-slate-50 p-3">
+
+              <div className="flex gap-2">
+
+                <div className="relative flex-1">
+                  <Search
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+
+                  <input
+                    value={
+                      studentSearch
+                    }
+                    onChange={(
+                      event,
+                    ) =>
+                      setStudentSearch(
+                        event
+                          .target
+                          .value,
+                      )
+                    }
+                    onKeyDown={(
+                      event,
+                    ) => {
+                      if (
+                        event.key ===
+                        "Enter"
+                      ) {
+                        void loadPaidStudents();
+                      }
+                    }}
+                    placeholder="Search name or registration number"
+                    className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    void loadPaidStudents();
+                  }}
+                >
+                  Search
+                </Button>
+
+              </div>
+
+              <div className="mt-3 flex items-center justify-between">
+
+                <button
+                  type="button"
+                  onClick={
+                    toggleAllVisible
+                  }
+                  className="text-sm font-semibold text-blue-600"
+                >
+                  Select All Visible
+                </button>
+
+                <span className="text-xs text-slate-500">
+                  {
+                    selectedStudentIds.length
+                  }{" "}
+                  selected
+                </span>
+
+              </div>
+            </div>
+
+
+            <div className="max-h-[270px] overflow-y-auto">
+
+              {loadingStudents ? (
+                <div className="grid place-items-center py-10">
+                  <Loader2 className="animate-spin text-blue-600" />
+                </div>
+              ) : paidStudents.length ===
+                0 ? (
+                <div className="py-10 text-center text-sm text-slate-500">
+                  No paid students
+                  found.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+
+                  {paidStudents.map(
+                    (student) => {
+
+                      const selected =
+                        selectedStudentIds.includes(
+                          student.id,
+                        );
+
+                      return (
+                        <label
+                          key={
+                            student.id
+                          }
+                          className={`flex cursor-pointer items-start gap-3 p-4 transition ${
+                            selected
+                              ? "bg-blue-50"
+                              : "hover:bg-slate-50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={
+                              selected
+                            }
+                            onChange={() =>
+                              toggleStudent(
+                                student.id,
+                              )
+                            }
+                            className="mt-1 h-4 w-4 rounded border-slate-300"
+                          />
+
+                          <div className="min-w-0 flex-1">
+
+                            <p className="font-semibold text-slate-900">
+                              {
+                                student.name
+                              }
+                            </p>
+
+                            <p className="mt-1 text-xs text-slate-500">
+                              {
+                                student.registration_number
+                              }
+
+                              {student
+                                .college
+                                ?.name
+                                ? ` • ${student.college.name}`
+                                : ""}
+
+                              {student
+                                .domain
+                                ?.domain_name
+                                ? ` • ${student.domain.domain_name}`
+                                : ""}
+                            </p>
+
+                          </div>
+
+                          <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
+                            Paid
+                          </span>
+                        </label>
+                      );
+                    },
+                  )}
+
+                </div>
+              )}
+
+            </div>
+
+          </div>
+        )}
+
+      </div>
+
+
+      {/* Footer */}
+
+      <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+
+        <p className="text-xs text-slate-500">
+          {recipientMode ===
+          "all"
+            ? "All paid students will receive this message."
+            : `${selectedStudentIds.length} student(s) selected.`}
+        </p>
+
+        <div className="flex gap-2">
+
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={
+              sendingMessage
+            }
+            onClick={() =>
+              setMessageOpen(
+                false,
+              )
+            }
+          >
+            Cancel
+          </Button>
+
+          <Button
+            type="button"
+            disabled={
+              sendingMessage
+            }
+            onClick={() => {
+              void handleSendMessage();
+            }}
+          >
+            {sendingMessage ? (
+              <Loader2
+                size={16}
+                className="mr-2 animate-spin"
+              />
+            ) : (
+              <Send
+                size={16}
+                className="mr-2"
+              />
+            )}
+
+            {sendingMessage
+              ? "Sending..."
+              : "Send Message"}
+          </Button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
     </div>
   );
 }
