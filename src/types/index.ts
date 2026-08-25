@@ -218,6 +218,9 @@ export interface BulkProcessPayload {
 
   student_ids?: number[];
 
+  student_from_date?: string;
+student_to_date?: string;
+
   start_date?: string;
   end_date?: string;
 

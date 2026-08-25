@@ -50,6 +50,9 @@ interface FormState {
   mentor_id: string;
   search: string;
 
+  student_from_date: string;
+student_to_date: string;
+
   start_date: string;
   end_date: string;
 
@@ -482,6 +485,9 @@ export default function Page() {
       batch_id: "",
       mentor_id: "",
       search: "",
+
+      student_from_date: "",
+student_to_date: "",
 
       start_date:
         getDateValue(
@@ -935,6 +941,8 @@ const loadStudents = async () => {
 
         domain_id:
           form.domain_id || undefined,
+        
+          
 
         session:
           form.session || undefined,
@@ -947,6 +955,14 @@ const loadStudents = async () => {
 
         mentor_id:
           form.mentor_id || undefined,
+
+          from_date:
+      form.student_from_date ||
+      undefined,
+
+    to_date:
+      form.student_to_date ||
+      undefined,
 
         // Sirf active internship
         status: "active",
@@ -1235,35 +1251,48 @@ const loadStudents = async () => {
     [],
   );
 
-  const hasTarget =
-    () => {
-      return (
-        selectedStudents
-          .length >
-          0 ||
-        Boolean(
-          form.college_id,
-        ) ||
-        Boolean(
-          form.sector_id,
-        ) ||
-        Boolean(
-          form.domain_id,
-        ) ||
-        Boolean(
-          form.session,
-        ) ||
-        Boolean(
-          form.semester,
-        ) ||
-        Boolean(
-          form.batch_id,
-        ) ||
-        Boolean(
-          form.mentor_id,
-        )
-      );
-    };
+ const hasTarget = () => {
+  return (
+    selectedStudents.length >
+      0 ||
+
+    Boolean(
+      form.college_id,
+    ) ||
+
+    Boolean(
+      form.sector_id,
+    ) ||
+
+    Boolean(
+      form.domain_id,
+    ) ||
+
+    Boolean(
+      form.session,
+    ) ||
+
+    Boolean(
+      form.semester,
+    ) ||
+
+    Boolean(
+      form.batch_id,
+    ) ||
+
+    Boolean(
+      form.mentor_id,
+    ) ||
+
+    Boolean(
+      form.student_from_date,
+    ) ||
+
+    Boolean(
+      form.student_to_date,
+    )
+  );
+};
 
   const buildPayload =
     (): BulkProcessPayload => {
@@ -1447,6 +1476,20 @@ const loadStudents = async () => {
       }
 
       if (
+  form.student_from_date
+) {
+  payload.student_from_date =
+    form.student_from_date;
+}
+
+if (
+  form.student_to_date
+) {
+  payload.student_to_date =
+    form.student_to_date;
+}
+
+      if (
         selectedStudents
           .length >
         0
@@ -1490,6 +1533,19 @@ const loadStudents = async () => {
 
         return false;
       }
+
+      if (
+  form.student_from_date &&
+  form.student_to_date &&
+  form.student_from_date >
+    form.student_to_date
+) {
+  toast.error(
+    "Registration From Date cannot be after Registration To Date",
+  );
+
+  return false;
+}
 
       if (
         form.start_date &&
@@ -2169,6 +2225,47 @@ const loadStudents = async () => {
         </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div>
+  <label className="label">
+    Registration From Date
+  </label>
+
+  <Input
+    type="date"
+    value={
+      form.student_from_date
+    }
+    onChange={(event) =>
+      setValue(
+        "student_from_date",
+        event.target.value,
+      )
+    }
+  />
+</div>
+
+<div>
+  <label className="label">
+    Registration To Date
+  </label>
+
+  <Input
+    type="date"
+    value={
+      form.student_to_date
+    }
+    min={
+      form.student_from_date ||
+      undefined
+    }
+    onChange={(event) =>
+      setValue(
+        "student_to_date",
+        event.target.value,
+      )
+    }
+  />
+</div>
           <div>
             <label className="label">
               College

@@ -217,6 +217,8 @@ export interface AdminListParams {
   semester?: string;
   batch_id?: number | string;
   mentor_id?: number | string;
+  from_date?: string;
+to_date?: string;
 }
 
 export interface AdminStudentImportError {
