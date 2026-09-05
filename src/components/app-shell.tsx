@@ -8,6 +8,7 @@ import {
 
 import {
   Bell,
+  BadgeIndianRupee,
   BookOpen,
   Building2,
   ClipboardCheck,
@@ -106,6 +107,11 @@ const adminMenu = mapMenu([
     "/admin/payments",
     FileText,
   ],
+  [
+    "College Payments",
+    "/admin/college-payments",
+    BadgeIndianRupee,
+  ],
 ]);
 
 const collegeMenu = mapMenu([
@@ -138,6 +144,11 @@ const collegeMenu = mapMenu([
     "Progress",
     "/college/progress",
     ClipboardCheck,
+  ],
+  [
+    "My Payments",
+    "/college/payments",
+    BadgeIndianRupee,
   ],
 ]);
 

@@ -963,7 +963,179 @@ export interface SendAdminMessageResponse {
 }
 
 
+
+/*
+|--------------------------------------------------------------------------
+| College Settlement / College Payouts
+|--------------------------------------------------------------------------
+*/
+
+export type CollegeSettlementPaymentMode =
+  | "bank_transfer"
+  | "upi"
+  | "cheque"
+  | "cash"
+  | "other";
+
+export interface CollegeSettlementSummary {
+  gross_revenue: number;
+  successful_payments: number;
+  college_share_percentage: number;
+  earned_share: number;
+  total_paid: number;
+  remaining_payable: number;
+  settlement_percentage: number;
+}
+
+export interface CollegeSettlementCollege {
+  id: number;
+  name: string;
+  code?: string | null;
+  university?: string | null;
+  status?: string | null;
+  college_share?: number;
+  rknexora_share?: number;
+}
+
+export interface CollegeSettlementItem {
+  id: number;
+  college_id: number;
+  amount: number | string;
+  payment_date: string;
+  payment_mode: CollegeSettlementPaymentMode;
+  transaction_reference?: string | null;
+  remarks?: string | null;
+  receipt_file?: string | null;
+  share_percentage_snapshot?: number | string;
+  earned_share_snapshot?: number | string;
+  balance_before?: number | string;
+  balance_after?: number | string;
+  created_by?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface AdminCollegeSettlementRow
+  extends CollegeSettlementCollege,
+    CollegeSettlementSummary {}
+
+export interface AdminCollegeSettlementsData {
+  items: AdminCollegeSettlementRow[];
+
+  summary: {
+    total_colleges: number;
+    gross_revenue: number;
+    total_college_share: number;
+    total_paid: number;
+    remaining_payable: number;
+    pending_colleges: number;
+  };
+}
+
+export interface CollegeSettlementDetailData {
+  college: CollegeSettlementCollege;
+  summary: CollegeSettlementSummary;
+  history: CollegeSettlementItem[];
+}
+
+export interface CreateCollegeSettlementPayload {
+  amount: number;
+  payment_date: string;
+  payment_mode: CollegeSettlementPaymentMode;
+  transaction_reference?: string;
+  remarks?: string;
+  receipt?: File | null;
+}
+
 export const adminService = {
+
+  collegeSettlements: (
+    params?: {
+      search?: string;
+      status?: string;
+    },
+  ) =>
+    api.get<
+      ApiResponse<AdminCollegeSettlementsData>
+    >(
+      "/admin/college-payments",
+      {
+        params,
+      },
+    ),
+
+  collegeSettlementDetail: (
+    collegeId: number,
+  ) =>
+    api.get<
+      ApiResponse<CollegeSettlementDetailData>
+    >(
+      `/admin/college-payments/${collegeId}`,
+    ),
+
+  createCollegeSettlement: (
+    collegeId: number,
+    data: CreateCollegeSettlementPayload,
+  ) => {
+    const formData =
+      new FormData();
+
+    formData.append(
+      "amount",
+      String(data.amount),
+    );
+
+    formData.append(
+      "payment_date",
+      data.payment_date,
+    );
+
+    formData.append(
+      "payment_mode",
+      data.payment_mode,
+    );
+
+    if (
+      data.transaction_reference
+    ) {
+      formData.append(
+        "transaction_reference",
+        data.transaction_reference,
+      );
+    }
+
+    if (data.remarks) {
+      formData.append(
+        "remarks",
+        data.remarks,
+      );
+    }
+
+    if (data.receipt) {
+      formData.append(
+        "receipt",
+        data.receipt,
+      );
+    }
+
+    return api.post<
+      ApiResponse<{
+        settlement:
+          CollegeSettlementItem;
+
+        college:
+          CollegeSettlementCollege;
+
+        summary:
+          CollegeSettlementSummary;
+      }>
+    >(
+      `/admin/college-payments/${collegeId}`,
+      formData,
+    );
+  },
+
+
 
 
 dashboard: () =>
@@ -1998,6 +2170,15 @@ export interface CollegeDashboardData {
 }
 
 export const collegeService = {
+
+  payments: () =>
+    api.get<
+      ApiResponse<CollegeSettlementDetailData>
+    >(
+      "/college/payments",
+    ),
+
+
   profile: () =>
     api.get<ApiResponse<College>>(
       "/college/profile",
