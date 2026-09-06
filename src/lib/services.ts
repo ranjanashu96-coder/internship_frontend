@@ -454,6 +454,89 @@ export interface CreateAssignmentPayload {
   question_text: string;
 }
 
+export type LiveClassStatus =
+  | "scheduled"
+  | "completed"
+  | "cancelled";
+
+export interface LiveClassItem {
+  id: number;
+
+  domain_id: number;
+  module_id?: number | null;
+  chapter_id?: number | null;
+
+  title: string;
+  description?: string | null;
+  instructor_name?: string | null;
+
+  meeting_url: string;
+  scheduled_at: string;
+
+  duration_minutes: number;
+  popup_minutes_before: number;
+
+  status: LiveClassStatus;
+
+  can_join?: boolean;
+  is_live?: boolean;
+  is_upcoming?: boolean;
+  popup_visible?: boolean;
+
+  join_opens_at?: string;
+  ends_at?: string;
+
+  seconds_until_start?: number;
+
+  domain?: {
+    id: number;
+    domain_name: string;
+  } | null;
+
+  module?: {
+    id: number;
+    module_number: number;
+    module_name: string;
+    domain_id: number;
+  } | null;
+
+  chapter?: {
+    id: number;
+    module_id: number;
+    chapter_number: number;
+    chapter_name: string;
+  } | null;
+}
+
+export interface LiveClassListData {
+  items: LiveClassItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface StudentUpcomingLiveClasses {
+  next_class: LiveClassItem | null;
+  items: LiveClassItem[];
+}
+
+export interface CreateLiveClassPayload {
+  domain_id: number;
+  module_id?: number | null;
+  chapter_id?: number | null;
+
+  title: string;
+  description?: string;
+  instructor_name?: string;
+
+  meeting_url: string;
+  scheduled_at: string;
+
+  duration_minutes: number;
+  popup_minutes_before?: number;
+}
+
 export interface MentorAssignableStudent {
   id: number;
   registration_number: string;
@@ -1174,6 +1257,57 @@ payments: (params?: {
   api.get<ApiResponse<AdminPaymentsData>>(
     "/admin/payments",
     { params },
+  ),
+
+liveClasses: (
+  params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    domain_id?: number | string;
+    module_id?: number | string;
+    chapter_id?: number | string;
+    status?: LiveClassStatus | "";
+  },
+) =>
+  api.get<
+    ApiResponse<LiveClassListData>
+  >(
+    "/admin/live-classes",
+    { params },
+  ),
+
+createLiveClass: (
+  data: CreateLiveClassPayload,
+) =>
+  api.post<
+    ApiResponse<LiveClassItem>
+  >(
+    "/admin/live-classes",
+    data,
+  ),
+
+updateLiveClass: (
+  id: number,
+  data:
+    Partial<CreateLiveClassPayload> & {
+      status?: LiveClassStatus;
+    },
+) =>
+  api.put<
+    ApiResponse<LiveClassItem>
+  >(
+    `/admin/live-classes/${id}`,
+    data,
+  ),
+
+deleteLiveClass: (
+  id: number,
+) =>
+  api.delete<
+    ApiResponse<Record<string, never>>
+  >(
+    `/admin/live-classes/${id}`,
   ),
 
   /*
@@ -3016,6 +3150,7 @@ export interface StudentDocumentsData {
 }
 
 
+
 export const studentService = {
   dashboard: () =>
     api.get<ApiResponse<StudentDashboardData>>(
@@ -3044,6 +3179,13 @@ export const studentService = {
     api.get<ApiResponse<StudentLearningData>>(
       "/student/learning",
     ),
+
+    upcomingLiveClasses: () =>
+  api.get<
+    ApiResponse<StudentUpcomingLiveClasses>
+  >(
+    "/student/live-classes/upcoming",
+  ),
 
   completeChapter: (
     chapterId: number,

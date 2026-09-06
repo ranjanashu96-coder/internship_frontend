@@ -23,6 +23,7 @@ import {
   Users,
   X,
   Zap,
+  Video,
 } from "lucide-react";
 
 import {
@@ -39,6 +40,7 @@ import { useAuthStore } from "@/store/auth-store";
 import {
   NotificationBell,
 } from "@/components/notification-bell";
+import StudentLiveClassPopup from "@/components/student/StudentLiveClassPopup";
 
 import type { Role } from "@/types";
 
@@ -87,6 +89,11 @@ const adminMenu = mapMenu([
     "/admin/learning",
     BookOpen,
   ],
+  [
+  "Live Classes",
+  "/admin/live-classes",
+  Video,
+],
   [
     "Internships",
     "/admin/internships",
@@ -527,6 +534,9 @@ export function AppShell({
           {children}
         </main>
       </div>
+      {role === "student" && (
+  <StudentLiveClassPopup />
+)}
     </div>
   );
 }
