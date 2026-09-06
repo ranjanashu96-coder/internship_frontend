@@ -177,57 +177,145 @@ export default function AdminLiveClassesPage() {
     emptyForm,
   );
 
-  const loadReferences =
-    useCallback(
-      async () => {
-        try {
-          const [
-            domainResponse,
-            moduleResponse,
-            chapterResponse,
-          ] =
-            await Promise.all([
-              adminService.domains({
-                page: 1,
-                limit: 100,
-              }),
+ const loadReferences = useCallback(
+  async () => {
+    try {
+      const [
+        domainResponse,
+        firstModuleResponse,
+        firstChapterResponse,
+      ] = await Promise.all([
+        adminService.domains({
+          page: 1,
+          limit: 100,
+        }),
 
-              adminService.modules({
-                page: 1,
-                limit: 100,
-              }),
+        adminService.modules({
+          page: 1,
+          limit: 100,
+        }),
 
-              adminService.chapters({
-                page: 1,
-                limit: 100,
-              }),
-            ]);
+        adminService.chapters({
+          page: 1,
+          limit: 100,
+        }),
+      ]);
 
-          setDomains(
-            domainResponse
-              .data.data.items ||
-              [],
-          );
+      // =====================================================
+      // DOMAINS
+      // =====================================================
 
-          setModules(
-            moduleResponse
-              .data.data.items ||
-              [],
-          );
+      setDomains(
+        domainResponse.data.data.items || [],
+      );
 
-          setChapters(
-            chapterResponse
-              .data.data.items ||
-              [],
-          );
-        } catch (error) {
-          toast.error(
-            errorMessage(error),
+      // =====================================================
+      // LOAD ALL MODULES
+      // =====================================================
+
+      let allModules: AdminModule[] =
+        firstModuleResponse.data.data.items || [];
+
+      const totalModulePages = Number(
+        firstModuleResponse.data.data.totalPages || 1,
+      );
+
+      if (totalModulePages > 1) {
+        const moduleRequests = [];
+
+        for (
+          let modulePage = 2;
+          modulePage <= totalModulePages;
+          modulePage += 1
+        ) {
+          moduleRequests.push(
+            adminService.modules({
+              page: modulePage,
+              limit: 100,
+            }),
           );
         }
-      },
-      [],
-    );
+
+        const moduleResponses =
+          await Promise.all(moduleRequests);
+
+        for (const response of moduleResponses) {
+          allModules = [
+            ...allModules,
+            ...(response.data.data.items || []),
+          ];
+        }
+      }
+
+      setModules(allModules);
+
+      // =====================================================
+      // LOAD ALL CHAPTERS
+      // =====================================================
+
+      let allChapters: AdminChapter[] =
+        firstChapterResponse.data.data.items || [];
+
+      const totalChapterPages = Number(
+        firstChapterResponse.data.data.totalPages || 1,
+      );
+
+      if (totalChapterPages > 1) {
+        const chapterRequests = [];
+
+        for (
+          let chapterPage = 2;
+          chapterPage <= totalChapterPages;
+          chapterPage += 1
+        ) {
+          chapterRequests.push(
+            adminService.chapters({
+              page: chapterPage,
+              limit: 100,
+            }),
+          );
+        }
+
+        const chapterResponses =
+          await Promise.all(chapterRequests);
+
+        for (const response of chapterResponses) {
+          allChapters = [
+            ...allChapters,
+            ...(response.data.data.items || []),
+          ];
+        }
+      }
+
+      setChapters(allChapters);
+
+      console.log(
+        "LIVE CLASS DOMAINS:",
+        domainResponse.data.data.items,
+      );
+
+      console.log(
+        "LIVE CLASS MODULES:",
+        allModules,
+      );
+
+      console.log(
+        "LIVE CLASS CHAPTERS:",
+        allChapters,
+      );
+    } catch (error) {
+      console.error(
+        "LIVE CLASS REFERENCE ERROR:",
+        error,
+      );
+
+      toast.error(
+        errorMessage(error),
+      );
+    }
+  },
+  [],
+);
 
   const loadClasses =
     useCallback(
