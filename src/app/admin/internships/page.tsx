@@ -60,6 +60,8 @@ interface StudentFilters {
   semester: string;
   status: string;
   payment_status: string;
+  from_date: string;
+  to_date: string;
 }
 
 const initialFilters: StudentFilters = {
@@ -69,6 +71,8 @@ const initialFilters: StudentFilters = {
   semester: "",
   status: "",
   payment_status: "paid",
+  from_date: "",
+  to_date: "",
 };
 
 export default function StudentsPage() {
@@ -179,6 +183,12 @@ const [
             payment_status:
               filters.payment_status ||
               undefined,
+            from_date:
+              filters.from_date ||
+              undefined,
+            to_date:
+              filters.to_date ||
+              undefined,
           });
 
         const result =
@@ -216,6 +226,8 @@ const [
       filters.session,
       filters.status,
       filters.payment_status,
+      filters.from_date,
+      filters.to_date,
       limit,
       page,
     ],
@@ -411,7 +423,9 @@ const handleStartInternship =
     filters.session !== "" ||
     filters.semester !== "" ||
     filters.status !== "" ||
-    filters.payment_status !== "paid";
+    filters.payment_status !== "paid" ||
+    filters.from_date !== "" ||
+    filters.to_date !== "";
 
   const columns = useMemo<
   ColumnDef<StudentWithRelations>[]
@@ -693,7 +707,7 @@ const handleStartInternship =
           </p>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
@@ -808,6 +822,40 @@ const handleStartInternship =
             <option value="failed">Failed</option>
             <option value="refunded">Refunded</option>
           </select>
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-600">
+              Registration From
+            </label>
+            <Input
+              type="date"
+              value={filters.from_date}
+              max={filters.to_date || undefined}
+              onChange={(event) =>
+                updateFilter(
+                  "from_date",
+                  event.target.value,
+                )
+              }
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-600">
+              Registration To
+            </label>
+            <Input
+              type="date"
+              value={filters.to_date}
+              min={filters.from_date || undefined}
+              onChange={(event) =>
+                updateFilter(
+                  "to_date",
+                  event.target.value,
+                )
+              }
+            />
+          </div>
         </div>
 
         {hasFilters && (
