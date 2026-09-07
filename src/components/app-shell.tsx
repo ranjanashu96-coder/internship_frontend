@@ -534,9 +534,10 @@ export function AppShell({
           {children}
         </main>
       </div>
-      {role === "student" && (
-  <StudentLiveClassPopup />
-)}
+     {role === "student" &&
+  path === "/student" && (
+    <StudentLiveClassPopup />
+  )}
     </div>
   );
 }

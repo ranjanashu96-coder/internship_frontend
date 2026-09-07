@@ -69,18 +69,56 @@ export default function AdminPaymentsPage() {
     }
   };
 
-  const generateReceipt = async (payment: AdminPaymentRow) => {
-    try {
-      setReceiptActionId(payment.id);
-      const response = await adminService.generatePaymentReceipt(payment.id);
-      toast.success(response.data.message || "Receipt generated successfully");
-      await loadPayments();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? "Receipt could not be generated");
-    } finally {
-      setReceiptActionId(null);
+ const generateReceipt = async (
+  payment: AdminPaymentRow,
+  regenerate = false,
+) => {
+  try {
+    if (regenerate) {
+      const confirmed =
+        window.confirm(
+          `Receipt ${
+            payment.receipt_number || ""
+          } ko regenerate karna hai?\n\nExisting receipt PDF replace ho jayegi.`,
+        );
+
+      if (!confirmed) {
+        return;
+      }
     }
-  };
+
+    setReceiptActionId(
+      payment.id,
+    );
+
+    const response =
+      await adminService
+        .generatePaymentReceipt(
+          payment.id,
+        );
+
+    toast.success(
+      response.data.message ||
+        (regenerate
+          ? "Receipt regenerated successfully"
+          : "Receipt generated successfully"),
+    );
+
+    await loadPayments();
+  } catch (error: any) {
+    toast.error(
+      error?.response?.data
+        ?.message ??
+        (regenerate
+          ? "Receipt regeneration failed"
+          : "Receipt could not be generated"),
+    );
+  } finally {
+    setReceiptActionId(
+      null,
+    );
+  }
+};
 
   const downloadReceipt = async (payment: AdminPaymentRow) => {
     try {
@@ -159,8 +197,129 @@ export default function AdminPaymentsPage() {
                   <td className="px-4 py-4"><p className="capitalize">{payment.payment_method || "—"}</p><p className="mt-1 text-xs text-slate-500">{formatDate(payment.paid_at || payment.created_at || payment.createdAt)}</p>{payment.payment_message && <p className="mt-1 max-w-[180px] text-xs text-slate-400">{payment.payment_message}</p>}</td>
                   <td className="px-4 py-4"><p className="font-medium">{payment.receipt_number || "Not generated"}</p>{payment.receipt_generated_at && <p className="mt-1 text-xs text-slate-500">{formatDate(payment.receipt_generated_at)}</p>}</td>
                   <td className="px-4 py-4"><div className="space-y-2"><Badge tone={payment.student?.payment_status === "paid" ? "green" : "slate"}>{payment.student?.payment_status || "unknown"}</Badge><div><Badge tone={payment.student?.internship_status === "active" ? "blue" : "slate"}>{payment.student?.internship_status || "unknown"}</Badge></div></div></td>
-                  <td className="px-4 py-4 text-right"><div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="secondary" className="h-9 px-3 text-xs" onClick={() => setSelectedPayment(payment)}>Details</Button><Button type="button" variant="secondary" className="h-9 px-3 text-xs" onClick={() => setEditingPayment(payment)}>Edit</Button>{["success", "paid"].includes(payment.status) && (payment.receipt_number ? <Button type="button" variant="secondary" className="h-9 px-3 text-xs" disabled={receiptActionId === payment.id} onClick={() => void downloadReceipt(payment)}>{receiptActionId === payment.id && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Download Receipt</Button> : <Button type="button" variant="secondary" className="h-9 px-3 text-xs" disabled={receiptActionId === payment.id} onClick={() => void generateReceipt(payment)}>{receiptActionId === payment.id && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}Generate Receipt</Button>)}{payment.status === "created" && <Button type="button" className="h-9 whitespace-nowrap px-3 text-xs" disabled={updatingId === payment.id} onClick={() => void markAsPaid(payment)}>{updatingId === payment.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-4 w-4" />}Mark Paid</Button>}</div></td>
-                </tr>
+<td className="px-4 py-4 text-right">
+  <div className="flex flex-wrap justify-end gap-2">
+    <Button
+      type="button"
+      variant="secondary"
+      className="h-9 px-3 text-xs"
+      onClick={() =>
+        setSelectedPayment(payment)
+      }
+    >
+      Details
+    </Button>
+
+    <Button
+      type="button"
+      variant="secondary"
+      className="h-9 px-3 text-xs"
+      onClick={() =>
+        setEditingPayment(payment)
+      }
+    >
+      Edit
+    </Button>
+
+    {["success", "paid"].includes(
+      payment.status,
+    ) && (
+      <>
+        {payment.receipt_number ? (
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-9 px-3 text-xs"
+              disabled={
+                receiptActionId ===
+                payment.id
+              }
+              onClick={() =>
+                void downloadReceipt(
+                  payment,
+                )
+              }
+            >
+              {receiptActionId ===
+                payment.id && (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              )}
+              Download Receipt
+            </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-9 whitespace-nowrap px-3 text-xs"
+              disabled={
+                receiptActionId ===
+                payment.id
+              }
+              onClick={() =>
+                void generateReceipt(
+                  payment,
+                  true,
+                )
+              }
+            >
+              {receiptActionId ===
+              payment.id ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCcw className="mr-1.5 h-4 w-4" />
+              )}
+              Regenerate Receipt
+            </Button>
+          </>
+        ) : (
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-9 whitespace-nowrap px-3 text-xs"
+            disabled={
+              receiptActionId ===
+              payment.id
+            }
+            onClick={() =>
+              void generateReceipt(
+                payment,
+                false,
+              )
+            }
+          >
+            {receiptActionId ===
+              payment.id && (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            )}
+            Generate Receipt
+          </Button>
+        )}
+      </>
+    )}
+
+    {payment.status === "created" && (
+      <Button
+        type="button"
+        className="h-9 whitespace-nowrap px-3 text-xs"
+        disabled={
+          updatingId === payment.id
+        }
+        onClick={() =>
+          void markAsPaid(payment)
+        }
+      >
+        {updatingId === payment.id ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <CheckCircle2 className="mr-1.5 h-4 w-4" />
+        )}
+
+        Mark Paid
+      </Button>
+    )}
+  </div>
+</td>                </tr>
               ))}</tbody>
             </table>
           </div>
