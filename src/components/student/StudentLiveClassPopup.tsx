@@ -7,6 +7,8 @@ import {
   useState,
 } from "react";
 
+import { useRouter } from "next/navigation";
+
 import {
   CalendarClock,
   ExternalLink,
@@ -92,6 +94,9 @@ const getClassEndTime = (
 };
 
 export default function StudentLiveClassPopup() {
+
+  const router = useRouter();
+
   const [
     liveClass,
     setLiveClass,
@@ -488,26 +493,27 @@ export default function StudentLiveClassPopup() {
         {/* JOIN BUTTON */}
         {/* ================================================= */}
 
-        {classTiming.canJoin ? (
-          <a
-            href={
-              liveClass.meeting_url
-            }
-            target="_blank"
-            rel="noreferrer"
-            className={`flex h-11 w-full items-center justify-center rounded-xl text-sm font-black text-white transition ${
-              classTiming.isLive
-                ? "bg-red-600 hover:bg-red-700"
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
-          >
-            <Video className="mr-2 h-4 w-4" />
+       {classTiming.canJoin ? (
+  <button
+    type="button"
+    onClick={() => {
+      router.push(
+        `/student/live-class/${liveClass.id}`,
+      );
+    }}
+    className={`flex h-11 w-full items-center justify-center rounded-xl text-sm font-black text-white transition ${
+      classTiming.isLive
+        ? "bg-red-600 hover:bg-red-700"
+        : "bg-blue-600 hover:bg-blue-700"
+    }`}
+  >
+    <Video className="mr-2 h-4 w-4" />
 
-            {joinText}
+    {joinText}
 
-            <ExternalLink className="ml-2 h-4 w-4" />
-          </a>
-        ) : (
+    <ExternalLink className="ml-2 h-4 w-4" />
+  </button>
+) : (
           <button
             type="button"
             disabled

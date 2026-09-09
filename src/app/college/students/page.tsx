@@ -11,9 +11,13 @@ import {
   Clock3,
   Download,
   Eye,
+  EyeOff,
+  KeyRound,
+  Loader2,
   Search,
   ShieldAlert,
   Users,
+  X,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -190,6 +194,14 @@ export default function CollegeStudentsPage() {
     setDownloadingId,
   ] =
     useState<number | null>(
+      null,
+    );
+
+  const [
+    passwordStudent,
+    setPasswordStudent,
+  ] =
+    useState<CollegeStudentRow | null>(
       null,
     );
 
@@ -390,6 +402,28 @@ export default function CollegeStudentsPage() {
     },
   ];
 
+  const handleResetPassword =
+    async (
+      studentId: number,
+      newPassword: string,
+    ) => {
+      const response =
+        await collegeService
+          .resetStudentPassword(
+            studentId,
+            newPassword,
+          );
+
+      toast.success(
+        response.data.message ||
+          "Student password changed successfully",
+      );
+
+      setPasswordStudent(
+        null,
+      );
+    };
+
   return (
     <div className="space-y-6">
       <div>
@@ -537,7 +571,7 @@ export default function CollegeStudentsPage() {
                 </th>
 
                 <th className="px-4 py-3 text-right">
-                  Certificate
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -661,51 +695,67 @@ export default function CollegeStudentsPage() {
                         </td>
 
                         <td className="px-4 py-4">
-                          {student.can_download_certificate ? (
-                            <div className="flex justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleViewCertificate(
-                                    student,
-                                  )
-                                }
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                              >
-                                <Eye size={15} />
-                                View
-                              </button>
-
-                              <Button
-                                type="button"
-                                disabled={
-                                  downloadingId ===
-                                  student.id
-                                }
-                                onClick={() =>
-                                  void handleDownloadCertificate(
-                                    student,
-                                  )
-                                }
-                                className="gap-1.5"
-                              >
-                                <Download
-                                  size={15}
-                                />
-
-                                {downloadingId ===
-                                student.id
-                                  ? "Downloading..."
-                                  : "Download"}
-                              </Button>
-                            </div>
-                          ) : (
-                            <p className="max-w-52 text-right text-xs text-slate-500">
-                              {
-                                student.certificate_message
+                          <div className="flex min-w-[250px] flex-col items-end gap-2">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className="h-9 gap-1.5 whitespace-nowrap px-3 text-xs"
+                              onClick={() =>
+                                setPasswordStudent(
+                                  student,
+                                )
                               }
-                            </p>
-                          )}
+                            >
+                              <KeyRound size={15} />
+                              Change Password
+                            </Button>
+
+                            {student.can_download_certificate ? (
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleViewCertificate(
+                                      student,
+                                    )
+                                  }
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                >
+                                  <Eye size={15} />
+                                  View Certificate
+                                </button>
+
+                                <Button
+                                  type="button"
+                                  disabled={
+                                    downloadingId ===
+                                    student.id
+                                  }
+                                  onClick={() =>
+                                    void handleDownloadCertificate(
+                                      student,
+                                    )
+                                  }
+                                  className="gap-1.5"
+                                >
+                                  <Download
+                                    size={15}
+                                  />
+
+                                  {downloadingId ===
+                                  student.id
+                                    ? "Downloading..."
+                                    : "Download"}
+                                </Button>
+                              </div>
+                            ) : (
+                              <p className="max-w-60 text-right text-xs text-slate-500">
+                                {
+                                  student.certificate_message
+                                }
+                              </p>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -764,6 +814,234 @@ export default function CollegeStudentsPage() {
           </div>
         )}
       </section>
+
+      {passwordStudent && (
+        <CollegeResetPasswordModal
+          student={passwordStudent}
+          onClose={() =>
+            setPasswordStudent(
+              null,
+            )
+          }
+          onSubmit={
+            handleResetPassword
+          }
+        />
+      )}
+    </div>
+  );
+}
+
+function CollegeResetPasswordModal({
+  student,
+  onClose,
+  onSubmit,
+}: {
+  student: CollegeStudentRow;
+  onClose: () => void;
+  onSubmit: (
+    studentId: number,
+    newPassword: string,
+  ) => Promise<void>;
+}) {
+  const [
+    newPassword,
+    setNewPassword,
+  ] = useState("");
+
+  const [
+    confirmPassword,
+    setConfirmPassword,
+  ] = useState("");
+
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const submit = async () => {
+    if (
+      newPassword.length < 8
+    ) {
+      toast.error(
+        "Password must be at least 8 characters",
+      );
+      return;
+    }
+
+    if (
+      newPassword !==
+      confirmPassword
+    ) {
+      toast.error(
+        "New password and confirm password do not match",
+      );
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      await onSubmit(
+        student.id,
+        newPassword,
+      );
+    } catch (error) {
+      toast.error(
+        getErrorMessage(
+          error,
+        ),
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Student Password
+            </p>
+
+            <h2 className="mt-1 text-xl font-bold text-slate-900">
+              Change Password
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-500">
+              {student.name} ·{" "}
+              {student.registration_number}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            aria-label="Close"
+            disabled={saving}
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              New Password
+            </label>
+
+            <div className="relative">
+              <Input
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(event) =>
+                  setNewPassword(
+                    event.target.value,
+                  )
+                }
+                placeholder="Minimum 8 characters"
+                className="pr-11"
+              />
+
+              <button
+                type="button"
+                aria-label={
+                  showPassword
+                    ? "Hide password"
+                    : "Show password"
+                }
+                onClick={() =>
+                  setShowPassword(
+                    (current) =>
+                      !current,
+                  )
+                }
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Confirm New Password
+            </label>
+
+            <Input
+              type={
+                showPassword
+                  ? "text"
+                  : "password"
+              }
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) =>
+                setConfirmPassword(
+                  event.target.value,
+                )
+              }
+              placeholder="Enter password again"
+            />
+          </div>
+
+          <p className="rounded-lg bg-blue-50 p-3 text-xs leading-5 text-blue-800">
+            You can change passwords only for students registered under your college.
+          </p>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={saving}
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            type="button"
+            disabled={
+              saving ||
+              newPassword.length < 8 ||
+              confirmPassword.length < 8
+            }
+            onClick={() =>
+              void submit()
+            }
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Changing...
+              </>
+            ) : (
+              <>
+                <KeyRound className="mr-2 h-4 w-4" />
+                Change Password
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

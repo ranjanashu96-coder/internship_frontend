@@ -1623,6 +1623,22 @@ removeStudentsFromMentor: (
     api.delete<ApiResponse<Record<string, never>>>(
       `/admin/students/${id}`,
     ),
+  resetStudentPassword: (
+    id: number,
+    newPassword: string,
+  ) =>
+    api.patch<
+      ApiResponse<{
+        student_id: number;
+        registration_number: string;
+        name?: string | null;
+      }>
+    >(
+      `/admin/students/${id}/password`,
+      {
+        new_password: newPassword,
+      },
+    ),
     startStudentInternship: (
   id: number,
   startDate: string,
@@ -2356,6 +2372,23 @@ export const collegeService = {
       "/college/students",
       {
         params,
+      },
+    ),
+
+  resetStudentPassword: (
+    studentId: number,
+    newPassword: string,
+  ) =>
+    api.patch<
+      ApiResponse<{
+        student_id: number;
+        registration_number: string;
+        name?: string | null;
+      }>
+    >(
+      `/college/students/${studentId}/password`,
+      {
+        new_password: newPassword,
       },
     ),
 
@@ -3149,6 +3182,40 @@ export interface StudentDocumentsData {
   total: number;
 }
 
+export interface StudentVideoProgress {
+  resource_id: number;
+  chapter_id: number;
+  duration_seconds: number;
+  watched_seconds: number;
+  last_position_seconds: number;
+  progress_percentage: number;
+  completion_required_percentage: number;
+  is_completed: boolean;
+}
+
+export interface StudentChapterRequirements {
+  chapter_engagement: any;
+  chapter_id: number;
+  video_completion_required_percentage: number;
+  live_attendance_required_percentage: number;
+  videos: Array<{
+    resource_id: number; title: string; duration_seconds: number;
+    watched_seconds: number; last_position_seconds: number;
+    progress_percentage: number; is_completed: boolean;
+  }>;
+  live_classes: Array<{
+    live_class_id: number; title: string; scheduled_at: string;
+    duration_seconds: number; attended_seconds: number;
+    attendance_percentage: number; is_completed: boolean;
+  }>;
+  summary: {
+    total_video_resources: number; completed_video_resources: number;
+    total_live_classes: number; completed_live_classes: number;
+    videos_complete: boolean; live_classes_complete: boolean;
+    learning_requirements_complete: boolean;
+  };
+}
+
 
 
 export const studentService = {
@@ -3186,6 +3253,39 @@ export const studentService = {
   >(
     "/student/live-classes/upcoming",
   ),
+
+  videoProgress: (resourceId: number) =>
+  api.get<ApiResponse<StudentVideoProgress>>(`/student/learning/resources/${resourceId}/progress`),
+
+videoHeartbeat: (resourceId: number, payload: {
+  position_seconds: number; duration_seconds: number; playing: boolean; visible: boolean;
+}) => api.post<ApiResponse<StudentVideoProgress>>(
+  `/student/learning/resources/${resourceId}/heartbeat`, payload,
+),
+
+chapterRequirements: (chapterId: number) =>
+  api.get<ApiResponse<StudentChapterRequirements>>(`/student/chapters/${chapterId}/requirements`),
+
+chapterEngagementHeartbeat: (
+  chapterId: number,
+  visible: boolean,
+) =>
+  api.post(
+    `/student/chapters/${chapterId}/engagement/heartbeat`,
+    {
+      visible,
+    },
+  ),
+
+joinLiveClass: (liveClassId: number) =>
+  api.post(`/student/live-classes/${liveClassId}/join`),
+
+liveClassHeartbeat: (liveClassId: number, sessionToken: string) =>
+  api.post(`/student/live-classes/${liveClassId}/heartbeat`, { session_token: sessionToken }),
+
+leaveLiveClass: (liveClassId: number, sessionToken: string) =>
+  api.post(`/student/live-classes/${liveClassId}/leave`, { session_token: sessionToken }),
+
 
   completeChapter: (
     chapterId: number,

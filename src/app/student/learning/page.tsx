@@ -35,6 +35,9 @@ import {
   PageHeader,
 } from "@/components/ui";
 
+import TrackedVideoResource from "@/components/student/TrackedVideoResource";
+import ChapterRequirementsCard from "@/components/student/ChapterRequirementsCard";
+
 import {
   studentService,
   type StudentChapter,
@@ -259,57 +262,58 @@ function ChapterResourceViewer({
   const externalUrl =
     resource.external_url || "";
 
-  if (
-    resource.resource_type === "video"
-  ) {
-    const videoUrl =
-      externalUrl || fileUrl;
+ if (
+  resource.resource_type === "video"
+) {
+  const videoUrl =
+    externalUrl || fileUrl;
 
-    if (!videoUrl) {
-      return null;
-    }
+  if (!videoUrl) {
+    return null;
+  }
 
-    const isYouTube =
-      videoUrl.includes("youtube.com") ||
-      videoUrl.includes("youtu.be");
+  const isYouTube =
+    videoUrl.includes("youtube.com") ||
+    videoUrl.includes("youtu.be");
 
+  if (!isYouTube) {
     return (
-      <section className="card">
-        <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-            Video
-          </p>
-
-          <h3 className="mt-1 font-bold text-slate-900">
-            {resource.title}
-          </h3>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl bg-slate-950">
-          {isYouTube ? (
-            <iframe
-              src={getYouTubeEmbedUrl(
-                videoUrl,
-              )}
-              title={resource.title}
-              className="aspect-video w-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          ) : (
-            <video
-              src={videoUrl}
-              controls
-              className="aspect-video w-full"
-            >
-              Your browser does not support
-              video playback.
-            </video>
-          )}
-        </div>
-      </section>
+      <TrackedVideoResource
+        resource={resource}
+      />
     );
   }
+
+  return (
+    <section className="card">
+      <div className="mb-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+          YouTube Video
+        </p>
+
+        <h3 className="mt-1 font-bold text-slate-900">
+          {resource.title}
+        </h3>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl bg-slate-950">
+        <iframe
+          src={getYouTubeEmbedUrl(
+            videoUrl,
+          )}
+          title={resource.title}
+          className="aspect-video w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+
+      <p className="mt-3 text-xs font-medium text-amber-600">
+        YouTube watch tracking is not enabled yet.
+      </p>
+    </section>
+  );
+}
 
   if (
     resource.resource_type === "pdf"
@@ -568,6 +572,21 @@ export default function LearningPage() {
   ] = useState(false);
 
   const [
+  requirementsComplete,
+  setRequirementsComplete,
+] = useState(false);
+
+const [
+  requirementsLoading,
+  setRequirementsLoading,
+] = useState(true);
+
+const [
+  engagementRemainingSeconds,
+  setEngagementRemainingSeconds,
+] = useState(0);
+
+  const [
     error,
     setError,
   ] = useState("");
@@ -656,6 +675,129 @@ export default function LearningPage() {
       ) ?? null,
     [allChapters, activeChapterId],
   );
+
+  useEffect(() => {
+  if (!activeChapter) {
+    setRequirementsComplete(false);
+    setRequirementsLoading(false);
+    setEngagementRemainingSeconds(0);
+    return;
+  }
+
+  if (activeChapter.completed) {
+    setRequirementsComplete(true);
+    setRequirementsLoading(false);
+    setEngagementRemainingSeconds(0);
+    return;
+  }
+
+  let cancelled = false;
+
+  const hasVideo = (
+    activeChapter.resources ?? []
+  ).some(
+    (resource) =>
+      resource.resource_type === "video",
+  );
+
+  const refreshRequirements =
+    async () => {
+      try {
+        const response =
+          await studentService.chapterRequirements(
+            activeChapter.id,
+          );
+
+        if (cancelled) {
+          return;
+        }
+
+        const requirements =
+          response.data.data;
+
+        setRequirementsComplete(
+          Boolean(
+            requirements?.summary
+              ?.learning_requirements_complete,
+          ),
+        );
+
+        setEngagementRemainingSeconds(
+          Number(
+            requirements
+              ?.chapter_engagement
+              ?.remaining_seconds ?? 0,
+          ),
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error(
+            "Failed to load chapter requirements",
+            error,
+          );
+
+          setRequirementsComplete(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setRequirementsLoading(false);
+        }
+      }
+    };
+
+  const heartbeat =
+    async () => {
+      /*
+       * IMPORTANT:
+       * Video chapter me PDF/reading
+       * 10-minute heartbeat nahi chalega.
+       */
+      if (!hasVideo) {
+        try {
+          await studentService
+            .chapterEngagementHeartbeat(
+              activeChapter.id,
+              document.visibilityState ===
+                "visible",
+            );
+        } catch (error) {
+          console.error(
+            "Chapter engagement heartbeat failed",
+            error,
+          );
+        }
+      }
+
+      /*
+       * Video / Live / PDF sabka latest
+       * requirement status refresh karo.
+       */
+      await refreshRequirements();
+    };
+
+  setRequirementsLoading(true);
+
+  void heartbeat();
+
+  const interval =
+    window.setInterval(
+      () => {
+        void heartbeat();
+      },
+      10000,
+    );
+
+  return () => {
+    cancelled = true;
+
+    window.clearInterval(
+      interval,
+    );
+  };
+}, [
+  activeChapter?.id,
+  activeChapter?.completed,
+]);
 
   const activeChapterIndex =
     activeChapter
@@ -1078,6 +1220,9 @@ export default function LearningPage() {
               <ResourceViewer
                 chapter={activeChapter}
               />
+              <ChapterRequirementsCard
+  chapterId={activeChapter.id}
+/>
               {activeChapter.quiz &&
   activeChapter.quiz.status === "active" && (
     <section className="card">

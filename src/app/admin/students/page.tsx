@@ -14,7 +14,9 @@ import {
   AlertCircle,
   Building2,
   Eye,
+  EyeOff,
   FileSpreadsheet,
+  KeyRound,
   Loader2,
   Search,
   Upload,
@@ -113,6 +115,14 @@ const [
 
   const [importOpen, setImportOpen] =
     useState(false);
+
+  const [
+    passwordStudent,
+    setPasswordStudent,
+  ] =
+    useState<StudentWithRelations | null>(
+      null,
+    );
 
   const loadColleges = useCallback(
     async () => {
@@ -304,6 +314,31 @@ const handleStartInternship =
       loadStudents,
     ],
   );
+
+  const handleResetPassword =
+    useCallback(
+      async (
+        studentId: number,
+        newPassword: string,
+      ) => {
+        const response =
+          await adminService
+            .resetStudentPassword(
+              studentId,
+              newPassword,
+            );
+
+        toast.success(
+          response.data.message ||
+            "Student password changed successfully",
+        );
+
+        setPasswordStudent(
+          null,
+        );
+      },
+      [],
+    );
 
   const hasFilters =
     filters.search !== "" ||
@@ -506,19 +541,35 @@ const handleStartInternship =
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-9 whitespace-nowrap px-3 text-xs"
-          onClick={() =>
-            router.push(
-              `/admin/students/${row.original.id}`,
-            )
-          }
-        >
-          <Eye className="mr-1.5 h-4 w-4" />
-          View
-        </Button>
+        <div className="flex w-[210px] gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-9 whitespace-nowrap px-3 text-xs"
+            onClick={() =>
+              router.push(
+                `/admin/students/${row.original.id}`,
+              )
+            }
+          >
+            <Eye className="mr-1.5 h-4 w-4" />
+            View
+          </Button>
+
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-9 whitespace-nowrap px-3 text-xs"
+            onClick={() =>
+              setPasswordStudent(
+                row.original,
+              )
+            }
+          >
+            <KeyRound className="mr-1.5 h-4 w-4" />
+            Password
+          </Button>
+        </div>
       ),
     },
   ],
@@ -774,6 +825,20 @@ const handleStartInternship =
         </div>
       </div>
 
+      {passwordStudent && (
+        <ResetPasswordModal
+          student={passwordStudent}
+          onClose={() =>
+            setPasswordStudent(
+              null,
+            )
+          }
+          onSubmit={
+            handleResetPassword
+          }
+        />
+      )}
+
       {importOpen && (
         <StudentImportModal
           colleges={colleges}
@@ -790,6 +855,221 @@ const handleStartInternship =
           }}
         />
       )}
+    </div>
+  );
+}
+
+function ResetPasswordModal({
+  student,
+  onClose,
+  onSubmit,
+}: {
+  student: StudentWithRelations;
+  onClose: () => void;
+  onSubmit: (
+    studentId: number,
+    newPassword: string,
+  ) => Promise<void>;
+}) {
+  const [
+    newPassword,
+    setNewPassword,
+  ] = useState("");
+
+  const [
+    confirmPassword,
+    setConfirmPassword,
+  ] = useState("");
+
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const submit = async () => {
+    if (
+      newPassword.length < 8
+    ) {
+      toast.error(
+        "Password must be at least 8 characters",
+      );
+      return;
+    }
+
+    if (
+      newPassword !==
+      confirmPassword
+    ) {
+      toast.error(
+        "New password and confirm password do not match",
+      );
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      await onSubmit(
+        student.id,
+        newPassword,
+      );
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data
+          ?.message ??
+          "Unable to change student password",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Student Password
+            </p>
+
+            <h2 className="mt-1 text-xl font-bold text-slate-900">
+              Change Password
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-500">
+              {student.name || "Student"} ·{" "}
+              {student.registration_number}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            aria-label="Close"
+            disabled={saving}
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              New Password
+            </label>
+
+            <div className="relative">
+              <Input
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(event) =>
+                  setNewPassword(
+                    event.target.value,
+                  )
+                }
+                placeholder="Minimum 8 characters"
+                className="pr-11"
+              />
+
+              <button
+                type="button"
+                aria-label={
+                  showPassword
+                    ? "Hide password"
+                    : "Show password"
+                }
+                onClick={() =>
+                  setShowPassword(
+                    (current) =>
+                      !current,
+                  )
+                }
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Confirm New Password
+            </label>
+
+            <Input
+              type={
+                showPassword
+                  ? "text"
+                  : "password"
+              }
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) =>
+                setConfirmPassword(
+                  event.target.value,
+                )
+              }
+              placeholder="Enter password again"
+            />
+          </div>
+
+          <p className="rounded-lg bg-amber-50 p-3 text-xs leading-5 text-amber-800">
+            Existing refresh-token sessions for this student will be revoked.
+            The student will need to log in again when the current access token expires.
+          </p>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={saving}
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            type="button"
+            disabled={
+              saving ||
+              newPassword.length < 8 ||
+              confirmPassword.length < 8
+            }
+            onClick={() =>
+              void submit()
+            }
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Changing...
+              </>
+            ) : (
+              <>
+                <KeyRound className="mr-2 h-4 w-4" />
+                Change Password
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
