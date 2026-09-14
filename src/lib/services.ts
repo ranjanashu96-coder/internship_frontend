@@ -1130,7 +1130,79 @@ export interface CreateCollegeSettlementPayload {
   receipt?: File | null;
 }
 
+
+export interface RoutineItem {
+  id: number;
+  title: string;
+  description?: string | null;
+  file_path: string;
+  file_url: string | null;
+  original_name?: string | null;
+  mime_type?: string | null;
+  file_size?: number | null;
+  status: "active" | "inactive";
+  published_at?: string | null;
+  created_by?: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoutineListData {
+  routines: RoutineItem[];
+}
+
+export interface RoutinePayload {
+  title: string;
+  description?: string;
+  status: "active" | "inactive";
+  published_at?: string;
+  routine_file?: File | null;
+}
+
 export const adminService = {
+  routines: () =>
+    api.get<ApiResponse<RoutineListData>>(
+      "/admin/routines",
+    ),
+
+  createRoutine: (data: RoutinePayload) => {
+    const formData = new FormData();
+    formData.append("title", data.title);
+    formData.append("description", data.description || "");
+    formData.append("status", data.status);
+    if (data.published_at) {
+      formData.append("published_at", data.published_at);
+    }
+    if (data.routine_file) {
+      formData.append("routine_file", data.routine_file);
+    }
+
+    return api.post<ApiResponse<{ routine: RoutineItem }>>(
+      "/admin/routines",
+      formData,
+    );
+  },
+
+  updateRoutine: (id: number, data: Partial<RoutinePayload>) => {
+    const formData = new FormData();
+    if (data.title !== undefined) formData.append("title", data.title);
+    if (data.description !== undefined) formData.append("description", data.description || "");
+    if (data.status !== undefined) formData.append("status", data.status);
+    if (data.published_at !== undefined) formData.append("published_at", data.published_at || "");
+    if (data.routine_file) formData.append("routine_file", data.routine_file);
+
+    return api.put<ApiResponse<{ routine: RoutineItem }>>(
+      `/admin/routines/${id}`,
+      formData,
+    );
+  },
+
+  deleteRoutine: (id: number) =>
+    api.delete<ApiResponse<Record<string, never>>>(
+      `/admin/routines/${id}`,
+    ),
+
+
 
   collegeSettlements: (
     params?: {
@@ -2059,6 +2131,24 @@ deleteQuiz: (
       id: number;
     }>
   >(`/admin/quizzes/${id}`),
+
+quizReattempts: () =>
+  api.get<
+    ApiResponse<QuizReattemptListData>
+  >("/admin/quiz-reattempts"),
+
+grantQuizReattempt: (
+  studentId: number,
+  quizId: number,
+  data: {
+    extra_attempts?: number;
+    reason?: string;
+  },
+) =>
+  api.post(
+    `/admin/students/${studentId}/quizzes/${quizId}/reattempt`,
+    data,
+  ),
 };
 
 export interface ExcelImportWarning {
@@ -2410,6 +2500,99 @@ export const collegeService = {
   ),
 };
 
+export interface MentorDashboardData {
+  mentor: {
+    id: number;
+    name: string;
+    employee_id: string;
+    designation?: string | null;
+    department?: string | null;
+    domain_id?: number | null;
+    college_id?: number | null;
+  };
+  summary: {
+    total_students: number;
+    active_students: number;
+    completed_students: number;
+    average_progress: number;
+    pending_reviews: number;
+    assessments_submitted: number;
+    assessments_pending: number;
+    failed_quiz_exhausted: number;
+  };
+  recent_students: Array<{
+    id: number;
+    name: string;
+    registration_number: string;
+    internship_status: string;
+    total_progress?: number | string | null;
+    college?: { id: number; name: string; code?: string | null } | null;
+    domain?: { id: number; domain_name: string } | null;
+  }>;
+}
+
+export interface QuizReattemptItem {
+  student: {
+    id: number;
+    name: string;
+    registration_number: string;
+    internship_status?: string;
+  };
+  quiz: {
+    id: number;
+    chapter_id: number;
+    title: string;
+    passing_score: number;
+    attempts_allowed: number;
+  };
+  attempts_used: number;
+  extra_attempts: number;
+  total_attempts_allowed: number;
+  latest_score: number;
+  latest_attempt_id?: number | null;
+  latest_attempt_number?: number | null;
+}
+
+export interface QuizReattemptListData {
+  items: QuizReattemptItem[];
+  total: number;
+}
+
+export interface MentorQuizChapterOption {
+  id: number;
+  module_id: number;
+  chapter_number: number;
+  chapter_name: string;
+  status: string;
+  module?: {
+    id: number;
+    domain_id: number;
+    module_number: number;
+    module_name: string;
+  } | null;
+  quiz?: {
+    id: number;
+    chapter_id: number;
+    title: string;
+    status: string;
+  } | null;
+}
+
+
+export interface MentorResourceChapterOption {
+  id: number;
+  module_id: number;
+  chapter_number: number;
+  chapter_name: string;
+  status: string;
+  module?: {
+    id: number;
+    domain_id: number;
+    module_number: number;
+    module_name: string;
+  } | null;
+}
+
 export interface MentorAssignedStudentsData {
   mentor: {
     id: number;
@@ -2449,6 +2632,11 @@ export interface MentorAssessmentPayload {
 }
 
 export const mentorService = {
+  dashboard: () =>
+    api.get<
+      ApiResponse<MentorDashboardData>
+    >("/mentor/dashboard"),
+
   students: (
     params?: MentorStudentParams,
   ) =>
@@ -2456,26 +2644,123 @@ export const mentorService = {
       ApiResponse<MentorAssignedStudentsData>
     >(
       "/mentor/students",
-      {
-        params,
-      },
+      { params },
     ),
 
   review: (
     submissionId: number,
     data: MentorReviewPayload,
   ) =>
-    api.put(
+    api.patch(
       `/mentor/submissions/${submissionId}/review`,
       data,
     ),
 
   assessment: (
     studentId: number,
-    data: MentorAssessmentPayload,
+    data: MentorAssessmentPayload & { assessment_type?: "midterm" | "final" },
   ) =>
     api.post(
-      `/mentor/assessments/${studentId}`,
+      `/mentor/students/${studentId}/assessment`,
+      data,
+    ),
+
+
+  resourceChapters: () =>
+    api.get<
+      ApiResponse<{ items: MentorResourceChapterOption[] }>
+    >("/mentor/resource-chapters"),
+
+  chapterResources: (chapterId: number) =>
+    api.get<
+      ApiResponse<ChapterResourcesResponse>
+    >(`/mentor/chapters/${chapterId}/resources`),
+
+  createChapterResource: (
+    chapterId: number,
+    data: CreateChapterResourcePayload,
+  ) =>
+    api.post<ApiResponse<AdminChapterResource>>(
+      `/mentor/chapters/${chapterId}/resources`,
+      createChapterResourceFormData(data),
+    ),
+
+  updateChapterResource: (
+    resourceId: number,
+    data: CreateChapterResourcePayload,
+  ) =>
+    api.put<ApiResponse<AdminChapterResource>>(
+      `/mentor/chapter-resources/${resourceId}`,
+      createChapterResourceFormData(data),
+    ),
+
+  deleteChapterResource: (resourceId: number) =>
+    api.delete<ApiResponse<Record<string, never>>>(
+      `/mentor/chapter-resources/${resourceId}`,
+    ),
+
+  reorderChapterResources: (
+    chapterId: number,
+    items: Array<{ id: number; sort_order: number }>,
+  ) =>
+    api.put<ApiResponse<AdminChapterResource[]>>(
+      `/mentor/chapters/${chapterId}/resources/reorder`,
+      { items },
+    ),
+
+  quizzes: (params?: QuizListParams) =>
+    api.get<
+      ApiResponse<PaginatedData<AdminQuiz>>
+    >(
+      "/mentor/quizzes",
+      { params },
+    ),
+
+  quizById: (id: number) =>
+    api.get<ApiResponse<AdminQuiz>>(
+      `/mentor/quizzes/${id}`,
+    ),
+
+  quizChapters: () =>
+    api.get<
+      ApiResponse<{ items: MentorQuizChapterOption[] }>
+    >("/mentor/quiz-chapters"),
+
+  createQuiz: (data: CreateQuizPayload) =>
+    api.post<ApiResponse<AdminQuiz>>(
+      "/mentor/quizzes",
+      data,
+    ),
+
+  updateQuiz: (
+    id: number,
+    data: UpdateQuizPayload,
+  ) =>
+    api.put<ApiResponse<AdminQuiz>>(
+      `/mentor/quizzes/${id}`,
+      data,
+    ),
+
+  deleteQuiz: (id: number) =>
+    api.delete(
+      `/mentor/quizzes/${id}`,
+    ),
+
+  quizReattempts: () =>
+    api.get<
+      ApiResponse<QuizReattemptListData>
+    >("/mentor/quiz-reattempts"),
+
+  grantQuizReattempt: (
+    studentId: number,
+    quizId: number,
+    data: {
+      extra_attempts?: number;
+      reason?: string;
+    },
+  ) =>
+    api.post(
+      `/mentor/students/${studentId}/quizzes/${quizId}/reattempt`,
       data,
     ),
 };
@@ -3194,7 +3479,6 @@ export interface StudentVideoProgress {
 }
 
 export interface StudentChapterRequirements {
-  chapter_engagement: any;
   chapter_id: number;
   video_completion_required_percentage: number;
   live_attendance_required_percentage: number;
@@ -3214,11 +3498,31 @@ export interface StudentChapterRequirements {
     videos_complete: boolean; live_classes_complete: boolean;
     learning_requirements_complete: boolean;
   };
+  chapter_engagement?: {
+  required?: boolean;
+
+  required_seconds?: number;
+
+  // Backend/UI compatibility
+  engaged_seconds?: number;
+  completed_seconds?: number;
+
+  remaining_seconds?: number;
+
+  is_completed?: boolean;
+  completed?: boolean;
+};
 }
 
 
 
 export const studentService = {
+  routines: () =>
+    api.get<ApiResponse<RoutineListData>>(
+      "/student/routines",
+    ),
+
+
   dashboard: () =>
     api.get<ApiResponse<StudentDashboardData>>(
       "/student/dashboard",
@@ -3276,6 +3580,7 @@ chapterEngagementHeartbeat: (
       visible,
     },
   ),
+
 
 joinLiveClass: (liveClassId: number) =>
   api.post(`/student/live-classes/${liveClassId}/join`),

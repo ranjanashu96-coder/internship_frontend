@@ -230,65 +230,74 @@ export default function ChapterRequirementsCard({
             10 MINUTE REQUIREMENT
         ========================== */}
 
-        {data.chapter_engagement && (
-          <div className="flex gap-3 rounded-xl border p-3">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-amber-50 text-amber-600">
-              <BookOpen className="h-4 w-4" />
-            </div>
+       {/* =========================
+    NO-VIDEO / PDF / TEXT
+    10 MINUTE REQUIREMENT
+========================== */}
 
-            <div className="flex-1">
-              <div className="flex justify-between gap-2">
-                <b>
-                  Chapter Reading Time
-                </b>
+{data.chapter_engagement && (
+  <div className="flex gap-3 rounded-xl border p-3">
+    <div className="grid h-9 w-9 place-items-center rounded-lg bg-amber-50 text-amber-600">
+      <BookOpen className="h-4 w-4" />
+    </div>
 
-                <span
-                  className={`text-xs font-semibold ${
-                    data
-                      .chapter_engagement
-                      .is_completed
-                      ? "text-emerald-600"
-                      : "text-slate-500"
-                  }`}
-                >
-                  {data
-                    .chapter_engagement
-                    .is_completed
-                    ? "Completed"
-                    : "10 minutes required"}
-                </span>
-              </div>
+    <div className="flex-1">
+      <div className="flex justify-between gap-2">
+        <b>
+          Chapter Reading Time
+        </b>
 
-              <p className="mt-1 text-xs text-slate-500">
-                {fmt(
-                  data
-                    .chapter_engagement
-                    .engaged_seconds,
-                )}{" "}
-                /{" "}
-                {fmt(
-                  data
-                    .chapter_engagement
-                    .required_seconds,
-                )}
-              </p>
+        <span
+          className={`text-xs font-semibold ${
+            data.chapter_engagement
+              .is_completed
+              ? "text-emerald-600"
+              : "text-slate-500"
+          }`}
+        >
+          {data.chapter_engagement
+            .is_completed
+            ? "Completed"
+            : "10 minutes required"}
+        </span>
+      </div>
 
-              {!data
-                .chapter_engagement
-                .is_completed && (
-                <p className="mt-1 text-xs font-medium text-amber-600">
-                  {Math.ceil(
-                    data
-                      .chapter_engagement
-                      .remaining_seconds /
-                      60,
-                  )}{" "}
-                  minute(s) remaining
-                </p>
-              )}
-            </div>
-          </div>
+      <p className="mt-1 text-xs text-slate-500">
+        {fmt(
+          Number(
+            data.chapter_engagement
+              .engaged_seconds ??
+              data.chapter_engagement
+                .completed_seconds ??
+              0,
+          ),
+        )}{" "}
+        /{" "}
+        {fmt(
+          Number(
+            data.chapter_engagement
+              .required_seconds ??
+              600,
+          ),
         )}
+      </p>
+
+      {!data.chapter_engagement
+        .is_completed && (
+        <p className="mt-1 text-xs font-medium text-amber-600">
+          {Math.ceil(
+            Number(
+              data.chapter_engagement
+                .remaining_seconds ??
+                0,
+            ) / 60,
+          )}{" "}
+          minute(s) remaining
+        </p>
+      )}
+    </div>
+  </div>
+)}
 
         {/* =========================
             LIVE CLASS

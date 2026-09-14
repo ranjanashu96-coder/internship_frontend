@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   AlertCircle,
@@ -726,9 +727,25 @@ const internshipDisplayStatus =
 
       <section className="grid gap-6 xl:grid-cols-3">
         <div className="card xl:col-span-2">
-  <h2 className="text-lg font-bold text-slate-900">
-    Learning Summary
-  </h2>
+   <div className="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 className="text-lg font-bold text-slate-900">
+        Learning Summary
+      </h2>
+
+      <p className="mt-1 text-sm text-slate-500">
+        Continue your course and complete pending chapters.
+      </p>
+    </div>
+
+    <Link
+      href="/student/learning"
+      className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+    >
+      <BookOpen size={17} />
+      Go to Learning
+    </Link>
+  </div>
 
   <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
     <div className="rounded-xl bg-blue-50 p-4">

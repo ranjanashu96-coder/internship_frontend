@@ -9,10 +9,14 @@ import {
 import {
   Bell,
   BadgeIndianRupee,
+  BrainCircuit,
+  RotateCcw,
   BookOpen,
   Building2,
+  CalendarDays,
   ClipboardCheck,
   FileText,
+  Files,
   GraduationCap,
   LayoutDashboard,
   Loader2,
@@ -90,10 +94,20 @@ const adminMenu = mapMenu([
     BookOpen,
   ],
   [
+    "Quiz Reattempts",
+    "/admin/quiz-reattempts",
+    RotateCcw,
+  ],
+  [
   "Live Classes",
   "/admin/live-classes",
   Video,
 ],
+  [
+    "Routine",
+    "/admin/routines",
+    CalendarDays,
+  ],
   [
     "Internships",
     "/admin/internships",
@@ -190,6 +204,21 @@ const menus: Record<
       "/mentor/assessments",
       FileText,
     ],
+    [
+      "Resources",
+      "/mentor/resources",
+      Files,
+    ],
+    [
+      "Quizzes",
+      "/mentor/quizzes",
+      BrainCircuit,
+    ],
+    [
+      "Quiz Reattempts",
+      "/mentor/quiz-reattempts",
+      RotateCcw,
+    ],
   ]),
 
   student: mapMenu([
@@ -207,6 +236,11 @@ const menus: Record<
       "Learning",
       "/student/learning",
       BookOpen,
+    ],
+    [
+      "Routine",
+      "/student/routine",
+      CalendarDays,
     ],
     [
       "Log Book",
