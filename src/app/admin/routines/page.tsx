@@ -208,7 +208,7 @@ const save = async () => {
         ? new Date(form.published_at).toISOString()
         : "",
 
-      file: file,
+       routine_file: file,  
     };
 
     if (editing) {
