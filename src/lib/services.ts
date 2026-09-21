@@ -3479,6 +3479,8 @@ export interface StudentVideoProgress {
 }
 
 export interface StudentChapterRequirements {
+  can_mark_complete: boolean;
+  is_empty_chapter(is_empty_chapter: any): import("react").SetStateAction<boolean>;
   chapter_id: number;
   video_completion_required_percentage: number;
   live_attendance_required_percentage: number;

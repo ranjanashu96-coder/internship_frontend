@@ -258,7 +258,7 @@ export default function ChapterRequirementsCard({
           {data.chapter_engagement
             .is_completed
             ? "Completed"
-            : "10 minutes required"}
+            : "120 minutes required"}
         </span>
       </div>
 

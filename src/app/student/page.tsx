@@ -71,6 +71,16 @@ const formatDate = (
   ).format(date);
 };
 
+const MAX_LEARNING_HOURS = 120;
+
+const capHours = (
+  value: number | null | undefined,
+) => {
+  const hours = formatNumber(value);
+
+  return Math.min(hours, MAX_LEARNING_HOURS);
+};
+
 const formatInternshipStartDate = (
   value?: string | null,
 ) => {
@@ -674,14 +684,16 @@ const internshipDisplayStatus =
         />
 
         <StatCard
-          label="Hours Remaining"
-          value={String(
-            formatNumber(
-              stats.hours_remaining,
-            ),
-          )}
-          icon={Clock}
-        />
+  label="Hours Remaining"
+  value={String(
+    Math.max(
+      MAX_LEARNING_HOURS -
+        capHours(stats.learning_hours),
+      0,
+    ),
+  )}
+  icon={Clock}
+/>
 
         <StatCard
           label="Assignments"
@@ -766,23 +778,27 @@ const internshipDisplayStatus =
         )} complete
       </p>
     </div>
+<div className="rounded-xl bg-emerald-50 p-4">
+  <p className="text-sm text-slate-500">
+    Learning Hours
+  </p>
 
-    <div className="rounded-xl bg-emerald-50 p-4">
-      <p className="text-sm text-slate-500">
-        Learning Hours
-      </p>
+  <p className="mt-2 text-2xl font-bold text-slate-900">
+    {capHours(stats.learning_hours)}
+    <span className="text-base font-medium text-slate-400">
+      /{MAX_LEARNING_HOURS}
+    </span>
+  </p>
 
-      <p className="mt-2 text-2xl font-bold text-slate-900">
-        {stats.learning_hours}
-        <span className="text-base font-medium text-slate-400">
-          /{stats.required_hours}
-        </span>
-      </p>
-
-      <p className="mt-1 text-xs text-emerald-600">
-        {stats.hours_remaining} hours remaining
-      </p>
-    </div>
+  <p className="mt-1 text-xs text-emerald-600">
+    {Math.max(
+      MAX_LEARNING_HOURS -
+        capHours(stats.learning_hours),
+      0,
+    )}{" "}
+    hours remaining
+  </p>
+</div>
 
     <div className="rounded-xl bg-violet-50 p-4">
       <div className="flex items-center justify-between">

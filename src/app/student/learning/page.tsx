@@ -571,11 +571,21 @@ export default function LearningPage() {
     setCompleting,
   ] = useState(false);
 
-  const [
+ const [
   requirementsComplete,
   setRequirementsComplete,
 ] = useState(false);
 
+// 🔴 NAYA: empty chapter me mark complete hide karne ke liye
+const [
+  canMarkComplete,
+  setCanMarkComplete,
+] = useState(true);
+
+const [
+  isEmptyChapter,
+  setIsEmptyChapter,
+] = useState(false);
 const [
   requirementsLoading,
   setRequirementsLoading,
@@ -681,6 +691,9 @@ const [
     setRequirementsComplete(false);
     setRequirementsLoading(false);
     setEngagementRemainingSeconds(0);
+      setCanMarkComplete(true);
+  setIsEmptyChapter(false);
+
     return;
   }
 
@@ -688,6 +701,8 @@ const [
     setRequirementsComplete(true);
     setRequirementsLoading(false);
     setEngagementRemainingSeconds(0);
+    setCanMarkComplete(true);
+  setIsEmptyChapter(false);
     return;
   }
 
@@ -700,50 +715,60 @@ const [
       resource.resource_type === "video",
   );
 
-  const refreshRequirements =
-    async () => {
-      try {
-        const response =
-          await studentService.chapterRequirements(
-            activeChapter.id,
-          );
+ const refreshRequirements = async () => {
+  try {
+    const response =
+      await studentService.chapterRequirements(
+        activeChapter.id,
+      );
 
-        if (cancelled) {
-          return;
-        }
+    if (cancelled) {
+      return;
+    }
 
-        const requirements =
-          response.data.data;
+    const requirements =
+      response.data.data;
 
-        setRequirementsComplete(
-          Boolean(
-            requirements?.summary
-              ?.learning_requirements_complete,
-          ),
-        );
+    setRequirementsComplete(
+      Boolean(
+        requirements?.summary
+          ?.learning_requirements_complete,
+      ),
+    );
 
-        setEngagementRemainingSeconds(
-          Number(
-            requirements
-              ?.chapter_engagement
-              ?.remaining_seconds ?? 0,
-          ),
-        );
-      } catch (error) {
-        if (!cancelled) {
-          console.error(
-            "Failed to load chapter requirements",
-            error,
-          );
+    setEngagementRemainingSeconds(
+      Number(
+        requirements
+          ?.chapter_engagement
+          ?.remaining_seconds ?? 0,
+      ),
+    );
 
-          setRequirementsComplete(false);
-        }
-      } finally {
-        if (!cancelled) {
-          setRequirementsLoading(false);
-        }
-      }
-    };
+    // ✅ YAHAN HONA CHAHIYE — requirements scope ke andar
+    setCanMarkComplete(
+      requirements?.can_mark_complete !== false,
+    );
+
+    setIsEmptyChapter(
+      Boolean(
+        requirements?.is_empty_chapter,
+      ),
+    );
+  } catch (error) {
+    if (!cancelled) {
+      console.error(
+        "Failed to load chapter requirements",
+        error,
+      );
+
+      setRequirementsComplete(false);
+    }
+  } finally {
+    if (!cancelled) {
+      setRequirementsLoading(false);
+    }
+  }
+};
 
   const heartbeat =
     async () => {
@@ -1183,37 +1208,40 @@ const [
                     </p>
                   </div>
 
-                  <Button
-                    type="button"
-                    disabled={
-                      activeChapter.completed ||
-                      completing ||
-                       Boolean(activeChapter.quiz)
-                    }
-                    onClick={() => {
-                      void handleCompleteChapter();
-                    }}
-                  >
-                    {completing ? (
-                      <Loader2
-                        size={17}
-                        className="mr-2 animate-spin"
-                      />
-                    ) : (
-                      <CheckCircle2
-                        size={17}
-                        className="mr-2"
-                      />
-                    )}
+                {/* 🔴 Empty chapter me button hide ho jayega */}
+{!isEmptyChapter && (
+  <Button
+    type="button"
+    disabled={
+      activeChapter.completed ||
+      completing ||
+      Boolean(activeChapter.quiz)
+    }
+    onClick={() => {
+      void handleCompleteChapter();
+    }}
+  >
+    {completing ? (
+      <Loader2
+        size={17}
+        className="mr-2 animate-spin"
+      />
+    ) : (
+      <CheckCircle2
+        size={17}
+        className="mr-2"
+      />
+    )}
 
-                    {activeChapter.completed
-  ? "Completed"
-  : activeChapter.quiz
-    ? "Pass Quiz to Complete"
-    : completing
-      ? "Completing..."
-      : "Mark Complete"}
-                  </Button>
+    {activeChapter.completed
+      ? "Completed"
+      : activeChapter.quiz
+        ? "Pass Quiz to Complete"
+        : completing
+          ? "Completing..."
+          : "Mark Complete"}
+  </Button>
+)}
                 </div>
               </section>
 
