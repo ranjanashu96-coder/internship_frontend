@@ -2132,6 +2132,57 @@ deleteQuiz: (
     }>
   >(`/admin/quizzes/${id}`),
 
+
+  importQuizFromExcel: (
+  chapterId: number,
+  data: {
+    file: File;
+    title: string;
+    description?: string;
+    passing_score?: number;
+    attempts_allowed?: number;
+    time_limit_minutes?: number;
+    randomize_questions?: boolean;
+    show_result_immediately?: boolean;
+    status?: QuizStatus;
+  },
+) => {
+  const formData = new FormData();
+
+  formData.append("file", data.file);
+  formData.append("chapter_id", String(chapterId));
+  formData.append("title", data.title);
+
+  if (data.description)
+    formData.append("description", data.description);
+
+  if (data.passing_score !== undefined)
+    formData.append("passing_score", String(data.passing_score));
+
+  if (data.attempts_allowed !== undefined)
+    formData.append("attempts_allowed", String(data.attempts_allowed));
+
+  if (
+    data.time_limit_minutes !== undefined &&
+    data.time_limit_minutes !== null
+  )
+    formData.append("time_limit_minutes", String(data.time_limit_minutes));
+
+  if (data.randomize_questions !== undefined)
+    formData.append("randomize_questions", String(data.randomize_questions));
+
+  if (data.show_result_immediately !== undefined)
+    formData.append("show_result_immediately", String(data.show_result_immediately));
+
+  if (data.status)
+    formData.append("status", data.status);
+
+  return api.post<ApiResponse<{ quiz: AdminQuiz; import_summary: any }>>(
+    "/admin/quizzes/import",
+    formData,
+  );
+},
+
 quizReattempts: () =>
   api.get<
     ApiResponse<QuizReattemptListData>

@@ -279,6 +279,24 @@ const [
   setQuizDeleting,
 ] = useState(false);
 
+
+const [quizImportModal, setQuizImportModal] = useState(false);
+const [quizImportChapter, setQuizImportChapter] = useState<AdminChapter | null>(null);
+
+const [quizImportForm, setQuizImportForm] = useState({
+  title: "",
+  description: "",
+  passing_score: "60",
+  attempts_allowed: "3",
+  time_limit_minutes: "",
+  randomize_questions: false,
+  show_result_immediately: true,
+  status: "draft" as QuizStatus,
+});
+
+const [quizImportFile, setQuizImportFile] = useState<File | null>(null);
+const [quizImportSaving, setQuizImportSaving] = useState(false);
+
   const title = useMemo(
     () => tabs.find((item) => item.key === tab)?.label || "Learning Setup",
     [tab],
@@ -1352,6 +1370,99 @@ const deleteQuiz = async () => {
   }
 };
 
+const openQuizImportModal = (chapter: AdminChapter) => {
+  setQuizImportChapter(chapter);
+  setQuizImportForm({
+    title: "",
+    description: "",
+    passing_score: "60",
+    attempts_allowed: "3",
+    time_limit_minutes: "",
+    randomize_questions: false,
+    show_result_immediately: true,
+    status: "draft",
+  });
+  setQuizImportFile(null);
+  setQuizImportModal(true);
+};
+
+const closeQuizImportModal = () => {
+  setQuizImportModal(false);
+  setQuizImportChapter(null);
+  setQuizImportFile(null);
+};
+
+const saveQuizImport = async () => {
+  if (!quizImportChapter) {
+    toast.error("Chapter not selected");
+    return;
+  }
+
+  const title = quizImportForm.title.trim();
+  if (!title) {
+    toast.error("Quiz title is required");
+    return;
+  }
+
+  if (!quizImportFile) {
+    toast.error("Excel file is required");
+    return;
+  }
+
+  setQuizImportSaving(true);
+
+  try {
+    const passingScore = Number(quizImportForm.passing_score);
+    if (!Number.isFinite(passingScore) || passingScore < 0 || passingScore > 100) {
+      throw new Error("Passing score must be between 0 and 100");
+    }
+
+    const attemptsAllowed = Number(quizImportForm.attempts_allowed);
+    if (!Number.isInteger(attemptsAllowed) || attemptsAllowed < 1) {
+      throw new Error("Attempts allowed must be at least 1");
+    }
+
+    const timeLimit = quizImportForm.time_limit_minutes.trim()
+      ? Number(quizImportForm.time_limit_minutes)
+      : undefined;
+
+    const response = await adminService.importQuizFromExcel(
+      quizImportChapter.id,
+      {
+        file: quizImportFile,
+        title,
+        description: quizImportForm.description.trim() || undefined,
+        passing_score: passingScore,
+        attempts_allowed: attemptsAllowed,
+        time_limit_minutes: timeLimit,
+        randomize_questions: quizImportForm.randomize_questions,
+        show_result_immediately: quizImportForm.show_result_immediately,
+        status: quizImportForm.status,
+      },
+    );
+
+    const summary = response.data.data?.import_summary;
+
+    toast.success(
+      summary
+        ? `Quiz imported — ${summary.imported_questions} question(s) added${
+            summary.skipped_rows > 0 ? `, ${summary.skipped_rows} skipped` : ""
+          }`
+        : "Quiz imported successfully",
+    );
+
+    if (summary?.errors?.length > 0) {
+      console.warn("Import errors:", summary.errors);
+    }
+
+    closeQuizImportModal();
+  } catch (error) {
+    toast.error(errorMessage(error));
+  } finally {
+    setQuizImportSaving(false);
+  }
+};
+
   const remove = async (row: RecordItem) => {
     if (!window.confirm("Delete this record?")) return;
 
@@ -1529,6 +1640,14 @@ const deleteQuiz = async () => {
       />
       Manage Quiz
     </button>
+    <button
+  type="button"
+  onClick={() => openQuizImportModal(value)}
+  className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-600 hover:bg-emerald-50"
+>
+  <FileUp size={16} />
+  Import Quiz
+</button>
   </div>
 </td>
         </>
@@ -2838,6 +2957,219 @@ const deleteQuiz = async () => {
       </div>
     </div>
   )}
+
+  {quizImportModal && quizImportChapter && (
+  <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/60 p-4">
+    <div className="max-h-[94vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+      {/* Header */}
+      <div className="flex items-start justify-between border-b px-6 py-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">
+            Import Quiz from Excel
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Chapter {quizImportChapter.chapter_number} — {quizImportChapter.chapter_name}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={closeQuizImportModal}
+          className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="space-y-5 p-6">
+        {/* Excel Format Hint */}
+        <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
+          <p className="font-semibold">Excel Format</p>
+          <p className="mt-1">
+            Columns: <strong>question</strong>, <strong>option1</strong>,{" "}
+            <strong>option2</strong>, <strong>option3</strong>,{" "}
+            <strong>option4</strong>, <strong>correct_answer</strong>{" "}
+            (e.g. "Option 1"), <strong>marks</strong> (optional),{" "}
+            <strong>explanation</strong> (optional)
+          </p>
+        </div>
+
+        {/* Quiz Title */}
+        <FieldLabel label="Quiz Title" required>
+          <Input
+            value={quizImportForm.title}
+            onChange={(event) =>
+              setQuizImportForm((current) => ({
+                ...current,
+                title: event.target.value,
+              }))
+            }
+            placeholder="Enter quiz title"
+          />
+        </FieldLabel>
+
+        {/* Description */}
+        <FieldLabel label="Description">
+          <textarea
+            value={quizImportForm.description}
+            onChange={(event) =>
+              setQuizImportForm((current) => ({
+                ...current,
+                description: event.target.value,
+              }))
+            }
+            rows={2}
+            placeholder="Optional quiz description"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+        </FieldLabel>
+
+        {/* Settings Grid */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FieldLabel label="Passing Score (%)" required>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={quizImportForm.passing_score}
+              onChange={(event) =>
+                setQuizImportForm((current) => ({
+                  ...current,
+                  passing_score: event.target.value,
+                }))
+              }
+            />
+          </FieldLabel>
+
+          <FieldLabel label="Attempts Allowed" required>
+            <Input
+              type="number"
+              min={1}
+              value={quizImportForm.attempts_allowed}
+              onChange={(event) =>
+                setQuizImportForm((current) => ({
+                  ...current,
+                  attempts_allowed: event.target.value,
+                }))
+              }
+            />
+          </FieldLabel>
+
+          <FieldLabel label="Time Limit (Minutes)">
+            <Input
+              type="number"
+              min={1}
+              value={quizImportForm.time_limit_minutes}
+              onChange={(event) =>
+                setQuizImportForm((current) => ({
+                  ...current,
+                  time_limit_minutes: event.target.value,
+                }))
+              }
+              placeholder="No limit"
+            />
+          </FieldLabel>
+
+          <FieldLabel label="Status" required>
+            <select
+              value={quizImportForm.status}
+              onChange={(event) =>
+                setQuizImportForm((current) => ({
+                  ...current,
+                  status: event.target.value as QuizStatus,
+                }))
+              }
+              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+            >
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </FieldLabel>
+        </div>
+
+        {/* Checkboxes */}
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+            <input
+              type="checkbox"
+              checked={quizImportForm.randomize_questions}
+              onChange={(event) =>
+                setQuizImportForm((current) => ({
+                  ...current,
+                  randomize_questions: event.target.checked,
+                }))
+              }
+              className="h-4 w-4 rounded"
+            />
+            Randomize questions
+          </label>
+
+          <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+            <input
+              type="checkbox"
+              checked={quizImportForm.show_result_immediately}
+              onChange={(event) =>
+                setQuizImportForm((current) => ({
+                  ...current,
+                  show_result_immediately: event.target.checked,
+                }))
+              }
+              className="h-4 w-4 rounded"
+            />
+            Show result immediately
+          </label>
+        </div>
+
+        {/* File Upload */}
+        <FieldLabel label="Excel File (.xlsx)" required>
+          <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-slate-200 bg-white p-5 hover:border-emerald-400">
+            <input
+              type="file"
+              accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+              className="sr-only"
+              onChange={(event) =>
+                setQuizImportFile(event.target.files?.[0] || null)
+              }
+            />
+            <div className="flex items-center gap-3">
+              <FileUp className="h-5 w-5 text-emerald-600" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">
+                  {quizImportFile ? quizImportFile.name : "Choose Excel file"}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Only .xlsx or .xls files allowed
+                </p>
+              </div>
+            </div>
+          </label>
+        </FieldLabel>
+      </div>
+
+      {/* Footer */}
+      <div className="flex justify-end gap-3 border-t bg-slate-50 px-6 py-4">
+        <button
+          type="button"
+          onClick={closeQuizImportModal}
+          className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+        >
+          Cancel
+        </button>
+
+        <Button
+          type="button"
+          disabled={quizImportSaving}
+          onClick={() => void saveQuizImport()}
+          className="gap-2"
+        >
+          {quizImportSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+          Import Quiz
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
 
     </div>
   );
