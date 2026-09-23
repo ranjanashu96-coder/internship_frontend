@@ -151,7 +151,7 @@ export default function ChapterRequirementsCard({
   return (
     <section className="card">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        {/* <div>
           <p className="text-xs font-semibold uppercase text-slate-500">
             Completion Requirements
           </p>
@@ -161,7 +161,7 @@ export default function ChapterRequirementsCard({
             before completing this
             chapter
           </h2>
-        </div>
+        </div> */}
 
         {data.summary
           .learning_requirements_complete && (
