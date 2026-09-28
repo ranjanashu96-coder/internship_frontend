@@ -25,7 +25,8 @@ import {
   Lock,
   PlayCircle,
   RefreshCw,
-   BrainCircuit, Trophy
+  BrainCircuit,
+  Trophy,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -36,7 +37,6 @@ import {
 } from "@/components/ui";
 
 import TrackedVideoResource from "@/components/student/TrackedVideoResource";
-import ChapterRequirementsCard from "@/components/student/ChapterRequirementsCard";
 
 import {
   studentService,
@@ -262,58 +262,58 @@ function ChapterResourceViewer({
   const externalUrl =
     resource.external_url || "";
 
- if (
-  resource.resource_type === "video"
-) {
-  const videoUrl =
-    externalUrl || fileUrl;
+  if (
+    resource.resource_type === "video"
+  ) {
+    const videoUrl =
+      externalUrl || fileUrl;
 
-  if (!videoUrl) {
-    return null;
-  }
+    if (!videoUrl) {
+      return null;
+    }
 
-  const isYouTube =
-    videoUrl.includes("youtube.com") ||
-    videoUrl.includes("youtu.be");
+    const isYouTube =
+      videoUrl.includes("youtube.com") ||
+      videoUrl.includes("youtu.be");
 
-  if (!isYouTube) {
+    if (!isYouTube) {
+      return (
+        <TrackedVideoResource
+          resource={resource}
+        />
+      );
+    }
+
     return (
-      <TrackedVideoResource
-        resource={resource}
-      />
+      <section className="card">
+        <div className="mb-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+            YouTube Video
+          </p>
+
+          <h3 className="mt-1 font-bold text-slate-900">
+            {resource.title}
+          </h3>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl bg-slate-950">
+          <iframe
+            src={getYouTubeEmbedUrl(
+              videoUrl,
+            )}
+            title={resource.title}
+            className="aspect-video w-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+
+        <p className="mt-3 text-xs font-medium text-amber-600">
+          YouTube watch tracking is not enabled yet.
+        </p>
+      </section>
     );
   }
-
-  return (
-    <section className="card">
-      <div className="mb-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-          YouTube Video
-        </p>
-
-        <h3 className="mt-1 font-bold text-slate-900">
-          {resource.title}
-        </h3>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl bg-slate-950">
-        <iframe
-          src={getYouTubeEmbedUrl(
-            videoUrl,
-          )}
-          title={resource.title}
-          className="aspect-video w-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
-
-      <p className="mt-3 text-xs font-medium text-amber-600">
-        YouTube watch tracking is not enabled yet.
-      </p>
-    </section>
-  );
-}
 
   if (
     resource.resource_type === "pdf"
@@ -500,6 +500,7 @@ function ChapterResourceViewer({
 
   return null;
 }
+
 function ResourceViewer({
   chapter,
 }: {
@@ -541,70 +542,31 @@ function ResourceViewer({
     </div>
   );
 }
+
 export default function LearningPage() {
   const router = useRouter();
-  const [
-    learning,
-    setLearning,
-  ] =
-    useState<StudentLearningData | null>(
-      null,
-    );
 
-  const [
-    activeChapterId,
-    setActiveChapterId,
-  ] = useState<number | null>(null);
+  const [learning, setLearning] =
+    useState<StudentLearningData | null>(null);
 
-  const [
-    expandedModules,
-    setExpandedModules,
-  ] = useState<number[]>([]);
+  const [activeChapterId, setActiveChapterId] =
+    useState<number | null>(null);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+  const [expandedModules, setExpandedModules] =
+    useState<number[]>([]);
 
-  const [
-    completing,
-    setCompleting,
-  ] = useState(false);
+  const [loading, setLoading] = useState(true);
 
- const [
-  requirementsComplete,
-  setRequirementsComplete,
-] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
-// 🔴 NAYA: empty chapter me mark complete hide karne ke liye
-const [
-  canMarkComplete,
-  setCanMarkComplete,
-] = useState(true);
+  // ✅ Sirf empty chapter check ke liye
+  const [isEmptyChapter, setIsEmptyChapter] =
+    useState(false);
 
-const [
-  isEmptyChapter,
-  setIsEmptyChapter,
-] = useState(false);
-const [
-  requirementsLoading,
-  setRequirementsLoading,
-] = useState(true);
-
-const [
-  engagementRemainingSeconds,
-  setEngagementRemainingSeconds,
-] = useState(0);
-
-  const [
-    error,
-    setError,
-  ] = useState("");
+  const [error, setError] = useState("");
 
   const loadLearning = useCallback(
-    async (
-      preferredChapterId?: number,
-    ) => {
+    async (preferredChapterId?: number) => {
       try {
         setLoading(true);
         setError("");
@@ -618,7 +580,8 @@ const [
 
         setExpandedModules(
           data.modules.map(
-            (module) => module.id,
+            (module: StudentLearningModule) =>
+              module.id,
           ),
         );
 
@@ -629,8 +592,7 @@ const [
           preferredChapterId
             ? chapters.find(
                 (chapter) =>
-                  chapter.id ===
-                    preferredChapterId &&
+                  chapter.id === preferredChapterId &&
                   chapter.unlocked,
               )
             : null;
@@ -643,14 +605,12 @@ const [
               !chapter.completed,
           ) ??
           chapters.find(
-            (chapter) =>
-              chapter.unlocked,
+            (chapter) => chapter.unlocked,
           ) ??
           null;
 
         setActiveChapterId(
-          firstAvailableChapter?.id ??
-            null,
+          firstAvailableChapter?.id ?? null,
         );
       } catch (requestError) {
         const message =
@@ -686,165 +646,37 @@ const [
     [allChapters, activeChapterId],
   );
 
+  // ✅ Simple check: agar chapter me resource ya quiz nahi hai,
+  // toh button hide karo.
   useEffect(() => {
-  if (!activeChapter) {
-    setRequirementsComplete(false);
-    setRequirementsLoading(false);
-    setEngagementRemainingSeconds(0);
-      setCanMarkComplete(true);
-  setIsEmptyChapter(false);
-
-    return;
-  }
-
-  if (activeChapter.completed) {
-    setRequirementsComplete(true);
-    setRequirementsLoading(false);
-    setEngagementRemainingSeconds(0);
-    setCanMarkComplete(true);
-  setIsEmptyChapter(false);
-    return;
-  }
-
-  let cancelled = false;
-
-  const hasVideo = (
-    activeChapter.resources ?? []
-  ).some(
-    (resource) =>
-      resource.resource_type === "video",
-  );
-
- const refreshRequirements = async () => {
-  try {
-    const response =
-      await studentService.chapterRequirements(
-        activeChapter.id,
-      );
-
-    if (cancelled) {
+    if (!activeChapter) {
+      setIsEmptyChapter(false);
       return;
     }
 
-    const requirements =
-      response.data.data;
+    const resources = activeChapter.resources ?? [];
+    const hasResources = resources.length > 0;
+    const hasQuiz = Boolean(activeChapter.quiz);
 
-    setRequirementsComplete(
-      Boolean(
-        requirements?.summary
-          ?.learning_requirements_complete,
-      ),
-    );
-
-    setEngagementRemainingSeconds(
-      Number(
-        requirements
-          ?.chapter_engagement
-          ?.remaining_seconds ?? 0,
-      ),
-    );
-
-    // ✅ YAHAN HONA CHAHIYE — requirements scope ke andar
-    setCanMarkComplete(
-      requirements?.can_mark_complete !== false,
-    );
-
-    setIsEmptyChapter(
-      Boolean(
-        requirements?.is_empty_chapter,
-      ),
-    );
-  } catch (error) {
-    if (!cancelled) {
-      console.error(
-        "Failed to load chapter requirements",
-        error,
-      );
-
-      setRequirementsComplete(false);
-    }
-  } finally {
-    if (!cancelled) {
-      setRequirementsLoading(false);
-    }
-  }
-};
-
-  const heartbeat =
-    async () => {
-      /*
-       * IMPORTANT:
-       * Video chapter me PDF/reading
-       * 10-minute heartbeat nahi chalega.
-       */
-      if (!hasVideo) {
-        try {
-          await studentService
-            .chapterEngagementHeartbeat(
-              activeChapter.id,
-              document.visibilityState ===
-                "visible",
-            );
-        } catch (error) {
-          console.error(
-            "Chapter engagement heartbeat failed",
-            error,
-          );
-        }
-      }
-
-      /*
-       * Video / Live / PDF sabka latest
-       * requirement status refresh karo.
-       */
-      await refreshRequirements();
-    };
-
-  setRequirementsLoading(true);
-
-  void heartbeat();
-
-  const interval =
-    window.setInterval(
-      () => {
-        void heartbeat();
-      },
-      10000,
-    );
-
-  return () => {
-    cancelled = true;
-
-    window.clearInterval(
-      interval,
-    );
-  };
-}, [
-  activeChapter?.id,
-  activeChapter?.completed,
-]);
+    setIsEmptyChapter(!hasResources && !hasQuiz);
+  }, [activeChapter?.id]);
 
   const activeChapterIndex =
     activeChapter
       ? allChapters.findIndex(
           (chapter) =>
-            chapter.id ===
-            activeChapter.id,
+            chapter.id === activeChapter.id,
         )
       : -1;
 
   const previousChapter =
     activeChapterIndex > 0
-      ? allChapters[
-          activeChapterIndex - 1
-        ]
+      ? allChapters[activeChapterIndex - 1]
       : null;
 
   const nextChapter =
     activeChapterIndex >= 0
-      ? allChapters[
-          activeChapterIndex + 1
-        ] ?? null
+      ? allChapters[activeChapterIndex + 1] ?? null
       : null;
 
   const handleChapterSelect = (
@@ -861,53 +693,44 @@ const [
     setActiveChapterId(chapter.id);
   };
 
-  const handleCompleteChapter =
-    async () => {
-      if (
-        !activeChapter ||
-        activeChapter.completed
-      ) {
-        return;
-      }
+  const handleCompleteChapter = async () => {
+    if (
+      !activeChapter ||
+      activeChapter.completed
+    ) {
+      return;
+    }
 
-      try {
-        setCompleting(true);
+    try {
+      setCompleting(true);
 
-        const response =
-          await studentService.completeChapter(
-            activeChapter.id,
-          );
-
-        toast.success(
-          response.data.message ||
-            "Chapter completed successfully",
+      const response =
+        await studentService.completeChapter(
+          activeChapter.id,
         );
 
-        const currentChapterId =
-          activeChapter.id;
+      toast.success(
+        response.data.message ||
+          "Chapter completed successfully",
+      );
 
-        await loadLearning(
-          currentChapterId,
-        );
-      } catch (requestError) {
-        toast.error(
-          getErrorMessage(requestError),
-        );
-      } finally {
-        setCompleting(false);
-      }
-    };
+      const currentChapterId = activeChapter.id;
 
-  const toggleModule = (
-    moduleId: number,
-  ) => {
-    setExpandedModules(
-      (current) =>
-        current.includes(moduleId)
-          ? current.filter(
-              (id) => id !== moduleId,
-            )
-          : [...current, moduleId],
+      await loadLearning(currentChapterId);
+    } catch (requestError) {
+      toast.error(
+        getErrorMessage(requestError),
+      );
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  const toggleModule = (moduleId: number) => {
+    setExpandedModules((current) =>
+      current.includes(moduleId)
+        ? current.filter((id) => id !== moduleId)
+        : [...current, moduleId],
     );
   };
 
@@ -919,8 +742,7 @@ const [
     return (
       <ErrorState
         message={
-          error ||
-          "Learning data was not returned."
+          error || "Learning data was not returned."
         }
         onRetry={() => {
           void loadLearning();
@@ -943,8 +765,7 @@ const [
     Math.max(
       0,
       Number(
-        learning.summary
-          .progress_percentage ?? 0,
+        learning.summary.progress_percentage ?? 0,
       ),
     ),
   );
@@ -961,13 +782,8 @@ const [
             </p>
 
             <h2 className="mt-1 text-xl font-bold">
-              {learning.summary
-                .completed_chapters}{" "}
-              of{" "}
-              {
-                learning.summary
-                  .total_chapters
-              }{" "}
+              {learning.summary.completed_chapters}{" "}
+              of {learning.summary.total_chapters}{" "}
               chapters completed
             </h2>
           </div>
@@ -993,177 +809,145 @@ const [
         <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-slate-100">
           <div
             className="h-full rounded-full bg-blue-600 transition-all duration-500"
-            style={{
-              width: `${progress}%`,
-            }}
+            style={{ width: `${progress}%` }}
           />
         </div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="space-y-3">
-          {learning.modules.map(
-            (module) => {
-              const isExpanded =
-                expandedModules.includes(
-                  module.id,
-                );
+          {learning.modules.map((module) => {
+            const isExpanded =
+              expandedModules.includes(module.id);
 
-              const moduleChapters =
-                module.Chapters ?? [];
+            const moduleChapters =
+              module.Chapters ?? [];
 
-              const completedCount =
-                moduleChapters.filter(
-                  (chapter) =>
-                    chapter.completed,
-                ).length;
+            const completedCount =
+              moduleChapters.filter(
+                (chapter) => chapter.completed,
+              ).length;
 
-              const moduleProgress =
-                moduleChapters.length > 0
-                  ? Math.round(
-                      (completedCount /
-                        moduleChapters.length) *
-                        100,
-                    )
-                  : 0;
+            const moduleProgress =
+              moduleChapters.length > 0
+                ? Math.round(
+                    (completedCount /
+                      moduleChapters.length) *
+                      100,
+                  )
+                : 0;
 
-              return (
-                <div
-                  key={module.id}
-                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            return (
+              <div
+                key={module.id}
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleModule(module.id)}
+                  className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-slate-50"
                 >
-                  <button
-                    type="button"
-                    onClick={() =>
-                      toggleModule(
-                        module.id,
-                      )
-                    }
-                    className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-slate-50"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-                        Module{" "}
-                        {
-                          module.module_number
-                        }
-                      </p>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                      Module {module.module_number}
+                    </p>
 
-                      <h3 className="mt-1 truncate font-bold text-slate-900">
-                        {module.module_name}
-                      </h3>
+                    <h3 className="mt-1 truncate font-bold text-slate-900">
+                      {module.module_name}
+                    </h3>
 
-                      <p className="mt-1 text-xs text-slate-500">
-                        {completedCount}/
-                        {
-                          moduleChapters.length
-                        }{" "}
-                        chapters •{" "}
-                        {moduleProgress}%
-                      </p>
-                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {completedCount}/
+                      {moduleChapters.length} chapters •{" "}
+                      {moduleProgress}%
+                    </p>
+                  </div>
 
-                    {isExpanded ? (
-                      <ChevronDown
-                        size={19}
-                        className="shrink-0 text-slate-400"
-                      />
-                    ) : (
-                      <ChevronRight
-                        size={19}
-                        className="shrink-0 text-slate-400"
-                      />
-                    )}
-                  </button>
-
-                  {isExpanded && (
-                    <div className="border-t border-slate-100 p-2">
-                      {moduleChapters.length >
-                      0 ? (
-                        moduleChapters.map(
-                          (chapter) => {
-                            const Icon =
-                              getChapterIcon(
-                                chapter,
-                              );
-
-                            const isActive =
-                              activeChapterId ===
-                              chapter.id;
-
-                            return (
-                              <button
-                                type="button"
-                                key={
-                                  chapter.id
-                                }
-                                onClick={() =>
-                                  handleChapterSelect(
-                                    chapter,
-                                  )
-                                }
-                                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
-                                  isActive
-                                    ? "bg-blue-50 text-blue-700"
-                                    : chapter.unlocked
-                                      ? "text-slate-700 hover:bg-slate-50"
-                                      : "cursor-not-allowed text-slate-400"
-                                }`}
-                              >
-                                <div
-                                  className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
-                                    chapter.completed
-                                      ? "bg-green-50 text-green-600"
-                                      : isActive
-                                        ? "bg-blue-100 text-blue-600"
-                                        : "bg-slate-100"
-                                  }`}
-                                >
-                                  <Icon
-                                    size={
-                                      17
-                                    }
-                                  />
-                                </div>
-
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-sm font-semibold">
-                                    {
-                                      chapter.chapter_name
-                                    }
-                                  </p>
-
-                                  <p className="mt-0.5 text-xs opacity-70">
-  Chapter {chapter.chapter_number}
-  {" • "}
-  {chapter.resource_count ?? chapter.resources?.length ?? 0}{" "}
-  Resources
-</p>
-                                </div>
-
-                                {chapter.completed && (
-                                  <Check
-                                    size={
-                                      16
-                                    }
-                                    className="shrink-0 text-green-600"
-                                  />
-                                )}
-                              </button>
-                            );
-                          },
-                        )
-                      ) : (
-                        <p className="p-4 text-center text-sm text-slate-500">
-                          No chapters found.
-                        </p>
-                      )}
-                    </div>
+                  {isExpanded ? (
+                    <ChevronDown
+                      size={19}
+                      className="shrink-0 text-slate-400"
+                    />
+                  ) : (
+                    <ChevronRight
+                      size={19}
+                      className="shrink-0 text-slate-400"
+                    />
                   )}
-                </div>
-              );
-            },
-          )}
+                </button>
+
+                {isExpanded && (
+                  <div className="border-t border-slate-100 p-2">
+                    {moduleChapters.length > 0 ? (
+                      moduleChapters.map((chapter) => {
+                        const Icon =
+                          getChapterIcon(chapter);
+
+                        const isActive =
+                          activeChapterId ===
+                          chapter.id;
+
+                        return (
+                          <button
+                            type="button"
+                            key={chapter.id}
+                            onClick={() =>
+                              handleChapterSelect(chapter)
+                            }
+                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
+                              isActive
+                                ? "bg-blue-50 text-blue-700"
+                                : chapter.unlocked
+                                  ? "text-slate-700 hover:bg-slate-50"
+                                  : "cursor-not-allowed text-slate-400"
+                            }`}
+                          >
+                            <div
+                              className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${
+                                chapter.completed
+                                  ? "bg-green-50 text-green-600"
+                                  : isActive
+                                    ? "bg-blue-100 text-blue-600"
+                                    : "bg-slate-100"
+                              }`}
+                            >
+                              <Icon size={17} />
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold">
+                                {chapter.chapter_name}
+                              </p>
+
+                              <p className="mt-0.5 text-xs opacity-70">
+                                Chapter {chapter.chapter_number}
+                                {" • "}
+                                {chapter.resource_count ??
+                                  chapter.resources?.length ??
+                                  0}{" "}
+                                Resources
+                              </p>
+                            </div>
+
+                            {chapter.completed && (
+                              <Check
+                                size={16}
+                                className="shrink-0 text-green-600"
+                              />
+                            )}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <p className="p-4 text-center text-sm text-slate-500">
+                        No chapters found.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </aside>
 
         <main className="min-w-0">
@@ -1174,18 +958,16 @@ const [
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600">
-  {activeChapter.resource_count ??
-    activeChapter.resources?.length ??
-    0}{" "}
-  Resources
-</span>
+                        {activeChapter.resource_count ??
+                          activeChapter.resources?.length ??
+                          0}{" "}
+                        Resources
+                      </span>
 
                       {activeChapter.completed && (
                         <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-600">
                           <CheckCircle2
-                            size={
-                              14
-                            }
+                            size={14}
                             className="mr-1.5"
                           />
 
@@ -1195,174 +977,170 @@ const [
                     </div>
 
                     <h1 className="mt-3 text-2xl font-bold text-slate-900">
-                      {
-                        activeChapter.chapter_name
-                      }
+                      {activeChapter.chapter_name}
                     </h1>
 
                     <p className="mt-2 text-sm text-slate-500">
-                      Chapter{" "}
-                      {
-                        activeChapter.chapter_number
-                      }
+                      Chapter {activeChapter.chapter_number}
                     </p>
                   </div>
 
-                {/* 🔴 Empty chapter me button hide ho jayega */}
-{!isEmptyChapter && (
-  <Button
-    type="button"
-    disabled={
-      activeChapter.completed ||
-      completing ||
-      Boolean(activeChapter.quiz)
-    }
-    onClick={() => {
-      void handleCompleteChapter();
-    }}
-  >
-    {completing ? (
-      <Loader2
-        size={17}
-        className="mr-2 animate-spin"
-      />
-    ) : (
-      <CheckCircle2
-        size={17}
-        className="mr-2"
-      />
-    )}
+                  {/* ✅ Simple Mark Complete button */}
+                  {!isEmptyChapter && (
+                    <Button
+                      type="button"
+                      disabled={
+                        activeChapter.completed ||
+                        completing
+                      }
+                      onClick={() => {
+                        void handleCompleteChapter();
+                      }}
+                    >
+                      {completing ? (
+                        <Loader2
+                          size={17}
+                          className="mr-2 animate-spin"
+                        />
+                      ) : (
+                        <CheckCircle2
+                          size={17}
+                          className="mr-2"
+                        />
+                      )}
 
-    {activeChapter.completed
-      ? "Completed"
-      : activeChapter.quiz
-        ? "Pass Quiz to Complete"
-        : completing
-          ? "Completing..."
-          : "Mark Complete"}
-  </Button>
-)}
+                      {activeChapter.completed
+                        ? "Completed"
+                        : completing
+                          ? "Completing..."
+                          : "Mark Complete"}
+                    </Button>
+                  )}
                 </div>
               </section>
 
-              <ResourceViewer
-                chapter={activeChapter}
-              />
-              <ChapterRequirementsCard
-  chapterId={activeChapter.id}
-/>
+              <ResourceViewer chapter={activeChapter} />
+
               {activeChapter.quiz &&
-  activeChapter.quiz.status === "active" && (
-    <section className="card">
-      <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-violet-50 text-violet-600">
-              <BrainCircuit size={20} />
-            </div>
+                activeChapter.quiz.status ===
+                  "active" && (
+                  <section className="card">
+                    <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="grid h-10 w-10 place-items-center rounded-xl bg-violet-50 text-violet-600">
+                            <BrainCircuit size={20} />
+                          </div>
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
-                Chapter Quiz
-              </p>
-              <h2 className="font-bold text-slate-900">
-                {activeChapter.quiz.title}
-              </h2>
-            </div>
-          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-violet-600">
+                              Chapter Quiz
+                            </p>
+                            <h2 className="font-bold text-slate-900">
+                              {activeChapter.quiz.title}
+                            </h2>
+                          </div>
+                        </div>
 
-          <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
-            <span className="rounded-full bg-slate-100 px-3 py-1.5">
-              Passing: {activeChapter.quiz.passing_score}%
-            </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1.5">
-              Marks: {activeChapter.quiz.total_marks}
-            </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1.5">
-              Attempts left:{" "}
-              {activeChapter.quiz.attempts_remaining ??
-                activeChapter.quiz.attempts_allowed}
-            </span>
-          </div>
-        </div>
+                        <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
+                          <span className="rounded-full bg-slate-100 px-3 py-1.5">
+                            Passing:{" "}
+                            {activeChapter.quiz.passing_score}%
+                          </span>
+                          <span className="rounded-full bg-slate-100 px-3 py-1.5">
+                            Marks:{" "}
+                            {activeChapter.quiz.total_marks}
+                          </span>
+                          <span className="rounded-full bg-slate-100 px-3 py-1.5">
+                            Attempts left:{" "}
+                            {activeChapter.quiz
+                              .attempts_remaining ??
+                              activeChapter.quiz
+                                .attempts_allowed}
+                          </span>
+                        </div>
+                      </div>
 
-        <Button
-  type="button"
-  disabled={
-    !activeChapter.quiz.can_start &&
-    !activeChapter.quiz.passed
-  }
-  onClick={() => {
-    const quiz = activeChapter.quiz;
+                      <Button
+                        type="button"
+                        disabled={
+                          !activeChapter.quiz.can_start &&
+                          !activeChapter.quiz.passed
+                        }
+                        onClick={() => {
+                          const quiz =
+                            activeChapter.quiz;
 
-    if (!quiz) return;
+                          if (!quiz) return;
 
-    if (quiz.active_attempt_id) {
-      router.push(
-        `/student/learning/quiz/${quiz.id}`,
-      );
-      return;
-    }
+                          if (quiz.active_attempt_id) {
+                            router.push(
+                              `/student/learning/quiz/${quiz.id}`,
+                            );
+                            return;
+                          }
 
-    if (
-      quiz.passed &&
-      quiz.best_attempt_id
-    ) {
-      router.push(
-        `/student/learning/result/${quiz.best_attempt_id}`,
-      );
-      return;
-    }
+                          if (
+                            quiz.passed &&
+                            quiz.best_attempt_id
+                          ) {
+                            router.push(
+                              `/student/learning/result/${quiz.best_attempt_id}`,
+                            );
+                            return;
+                          }
 
-    if (!quiz.can_start) {
-      toast.error(
-        "No quiz attempts are remaining.",
-      );
-      return;
-    }
+                          if (!quiz.can_start) {
+                            toast.error(
+                              "No quiz attempts are remaining.",
+                            );
+                            return;
+                          }
 
-    router.push(
-      `/student/learning/quiz/${quiz.id}`,
-    );
-  }}
->
-  {activeChapter.quiz.passed ? (
-    <>
-      <Trophy
-        size={17}
-        className="mr-2"
-      />
-      View Result
-    </>
-  ) : activeChapter.quiz.active_attempt_id ? (
-    <>
-      <BrainCircuit
-        size={17}
-        className="mr-2"
-      />
-      Continue Quiz
-    </>
-  ) : activeChapter.quiz.attempts_used > 0 ? (
-    <>
-      <RefreshCw
-        size={17}
-        className="mr-2"
-      />
-      Retry Quiz
-    </>
-  ) : (
-    <>
-      <BrainCircuit
-        size={17}
-        className="mr-2"
-      />
-      Start Quiz
-    </>
-  )}
-</Button>
-      </div>
-    </section>
-  )}
+                          router.push(
+                            `/student/learning/quiz/${quiz.id}`,
+                          );
+                        }}
+                      >
+                        {activeChapter.quiz.passed ? (
+                          <>
+                            <Trophy
+                              size={17}
+                              className="mr-2"
+                            />
+                            View Result
+                          </>
+                        ) : activeChapter.quiz
+                            .active_attempt_id ? (
+                          <>
+                            <BrainCircuit
+                              size={17}
+                              className="mr-2"
+                            />
+                            Continue Quiz
+                          </>
+                        ) : activeChapter.quiz
+                            .attempts_used > 0 ? (
+                          <>
+                            <RefreshCw
+                              size={17}
+                              className="mr-2"
+                            />
+                            Retry Quiz
+                          </>
+                        ) : (
+                          <>
+                            <BrainCircuit
+                              size={17}
+                              className="mr-2"
+                            />
+                            Start Quiz
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </section>
+                )}
 
               <section className="card flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                 <Button
@@ -1373,9 +1151,7 @@ const [
                     !previousChapter.unlocked
                   }
                   onClick={() => {
-                    if (
-                      previousChapter?.unlocked
-                    ) {
+                    if (previousChapter?.unlocked) {
                       setActiveChapterId(
                         previousChapter.id,
                       );
@@ -1398,9 +1174,7 @@ const [
                     !nextChapter.unlocked
                   }
                   onClick={() => {
-                    if (
-                      nextChapter?.unlocked
-                    ) {
+                    if (nextChapter?.unlocked) {
                       setActiveChapterId(
                         nextChapter.id,
                       );
@@ -1429,8 +1203,7 @@ const [
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500">
-                  Select an unlocked
-                  chapter to start
+                  Select an unlocked chapter to start
                   learning.
                 </p>
               </div>
