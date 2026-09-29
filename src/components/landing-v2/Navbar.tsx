@@ -13,6 +13,7 @@ const links = [
   ["Why Us", "#why-us"],
   ["Recognition", "#recognition"],
   ["Contact", "#contact"],
+  ["Verify Certificate", "#verify-certificate"],
 ];
 
 export default function Navbar() {

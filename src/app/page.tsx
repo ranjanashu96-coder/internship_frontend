@@ -13,6 +13,7 @@ import {
   WhyChoose,
   WhyInternship,
 } from "@/components/landing-v2";
+import VerifyCertificateForm from "@/components/landing-v2/VerifyCertificateForm";
 
 export default function HomePage() {
   return (
@@ -26,6 +27,7 @@ export default function HomePage() {
       <WhyInternship />
       <WhyChoose />
       <Recognition />
+      <VerifyCertificateForm />
       <CTA />
       <Footer />
     </main>

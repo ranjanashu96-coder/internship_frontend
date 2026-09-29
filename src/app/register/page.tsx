@@ -18,7 +18,7 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -801,98 +801,67 @@ if (
         ],
     );
 
-  const uploadDocuments =
-    async () => {
-      if (
-        registrationLocked
-      ) {
-        toast.error(
-          "Registration is locked and documents cannot be changed",
-        );
-        return;
+ const uploadDocuments = async () => {
+  if (registrationLocked) {
+    toast.error("Registration is locked and documents cannot be changed");
+    return;
+  }
+
+  // Validation
+  if (!hasDocument("photo")) {
+    toast.error("Passport photo is required / पासपोर्ट फोटो आवश्यक है");
+    return;
+  }
+
+  if (!hasDocument("identity_document")) {
+    toast.error(
+      "Latest semester admit card is required / Admit Card आवश्यक है",
+    );
+    return;
+  }
+
+  setBusy(true);
+
+  try {
+    const formData = new FormData();
+
+    formData.append(
+      "registration_number",
+      getValues("registration_number"),
+    );
+
+    Object.entries(files).forEach(([key, file]) => {
+      if (file) {
+        formData.append(key, file);
       }
+    });
 
-      if (
-        !hasDocument(
-          "photo",
-        ) ||
-        !hasDocument(
-          "identity_document",
-        ) 
-       
-      ) {
-        toast.error(
-          "Passport photo and latest semester admit card are required",
-        );
-        return;
-      }
+    const response = await registrationService.uploadDocuments(formData);
 
-      setBusy(true);
+    const documents = response.data.data;
 
-      try {
-        const formData =
-          new FormData();
+    // Update saved documents — file URLs aayenge response mein
+    setSavedDocuments({
+      photo: documents.photo || savedDocuments.photo || null,
+      identity_document:
+        documents.identity_document ||
+        savedDocuments.identity_document ||
+        null,
+    });
 
-        formData.append(
-          "registration_number",
-          getValues(
-            "registration_number",
-          ),
-        );
+    // Clear selected files AFTER successful upload
+    setFiles({});
 
-        Object.entries(
-          files,
-        ).forEach(
-          ([
-            key,
-            file,
-          ]) => {
-            if (file) {
-              formData.append(
-                key,
-                file,
-              );
-            }
-          },
-        );
-
-        const response =
-          await registrationService
-            .uploadDocuments(
-              formData,
-            );
-
-        const documents =
-          response.data.data;
-
-        setSavedDocuments({
-          photo:
-            documents.photo,
-
-          identity_document:
-            documents.identity_document,
-
-         
-        });
-
-        setFiles({});
-
-        toast.success(
-          "Documents uploaded successfully",
-        );
-
-        setStep(4);
-      } catch (error) {
-        toast.error(
-          getErrorMessage(
-            error,
-            "Documents could not be uploaded",
-          ),
-        );
-      } finally {
-        setBusy(false);
-      }
-    };
+    toast.success("Documents uploaded successfully");
+    setStep(4);
+  } catch (error) {
+    toast.error(
+      getErrorMessage(error, "Documents could not be uploaded"),
+    );
+  } finally {
+    setBusy(false);
+  }
+};
 
   const lockAndProceed =
     async () => {
@@ -2690,10 +2659,32 @@ function FileField({
   onChange: (file?: File) => void;
 }) {
   const uploaded = Boolean(selectedFile || existingFile);
+  const isImage =
+    /\.(jpg|jpeg|png|webp)$/i.test(
+      selectedFile?.name || existingFile || "",
+    ) ||
+    selectedFile?.type?.startsWith("image/");
+const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedFile) {
+      const url = URL.createObjectURL(selectedFile);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+
+    setPreviewUrl(existingFile || null);
+  }, [selectedFile, existingFile]);
+  
+  const handleRemove = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onChange(undefined);
+  };
 
   return (
     <label
-      className={`group cursor-pointer rounded-2xl border-2 border-dashed p-5 transition ${
+      className={`group block cursor-pointer rounded-2xl border-2 border-dashed p-5 transition ${
         uploaded
           ? "border-emerald-200 bg-emerald-50/60"
           : "border-slate-200 bg-slate-50 hover:border-blue-400 hover:bg-blue-50/50"
@@ -2706,32 +2697,53 @@ function FileField({
         onChange={(event) => onChange(event.target.files?.[0])}
       />
 
-      <div className="flex items-center gap-4">
-        <span
-          className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${
-            uploaded
-              ? "bg-emerald-100 text-emerald-600"
-              : "bg-white text-blue-600 shadow-sm"
-          }`}
-        >
-          {uploaded ? (
-            <CheckCircle2 className="h-6 w-6" />
-          ) : (
-            <UploadCloud className="h-6 w-6" />
-          )}
-        </span>
+      <div className="flex items-start gap-4">
+        {/* Preview thumbnail */}
+        {uploaded && isImage && previewUrl ? (
+          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-emerald-200 bg-white">
+            <img
+              src={previewUrl}
+              alt={label}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        ) : (
+          <span
+            className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${
+              uploaded
+                ? "bg-emerald-100 text-emerald-600"
+                : "bg-white text-blue-600 shadow-sm"
+            }`}
+          >
+            {uploaded ? (
+              <CheckCircle2 className="h-6 w-6" />
+            ) : (
+              <UploadCloud className="h-6 w-6" />
+            )}
+          </span>
+        )}
 
         <div className="min-w-0 flex-1">
           <p className="font-bold text-[#071a2f]">{label}</p>
 
           {selectedFile ? (
-            <p className="mt-1 truncate text-sm text-blue-600">
-              Selected: {selectedFile.name}
-            </p>
+            <>
+              <p className="mt-1 truncate text-sm font-semibold text-blue-600">
+                {selectedFile.name}
+              </p>
+              <p className="text-xs text-slate-500">
+                {(selectedFile.size / 1024).toFixed(1)} KB · New file
+              </p>
+            </>
           ) : existingFile ? (
-            <p className="mt-1 text-sm font-medium text-emerald-600">
-              Already uploaded / पहले से अपलोड
-            </p>
+            <>
+              <p className="mt-1 truncate text-sm font-medium text-emerald-600">
+                {existingFile.split("/").pop()}
+              </p>
+              <p className="text-xs text-emerald-700">
+                Already uploaded · Click to replace
+              </p>
+            </>
           ) : (
             <p className="mt-1 text-sm text-slate-500">
               {hint || "Click to select PDF, PNG or JPG / फ़ाइल चुनें"}
@@ -2739,9 +2751,21 @@ function FileField({
           )}
         </div>
 
-        <span className="hidden rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm sm:block">
-          Browse / चुनें
-        </span>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <span className="hidden rounded-lg bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm sm:block">
+            {uploaded ? "Change" : "Browse"}
+          </span>
+
+          {uploaded && (
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100"
+            >
+              Remove
+            </button>
+          )}
+        </div>
       </div>
     </label>
   );
