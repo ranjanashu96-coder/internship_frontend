@@ -1202,6 +1202,33 @@ export const adminService = {
       `/admin/routines/${id}`,
     ),
 
+    /* Late Fine Settings */
+
+getLateFineSettings: () =>
+  api.get<
+    ApiResponse<{
+      id: number | null;
+      start_date: string | null;
+      late_fine_amount: number;
+      is_active: boolean;
+      updated_at: string | null;
+    }>
+  >("/admin/late-fine"),
+
+updateLateFineSettings: (data: {
+  start_date: string;
+  late_fine_amount: number;
+}) =>
+  api.put<
+    ApiResponse<{
+      id: number;
+      start_date: string;
+      late_fine_amount: number;
+      is_active: boolean;
+      updated_at: string;
+    }>
+  >("/admin/late-fine", data),
+
 
 
   collegeSettlements: (

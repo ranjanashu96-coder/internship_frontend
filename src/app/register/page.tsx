@@ -371,6 +371,15 @@ const [
   ] =
     useState(false);
 
+
+const [feeBreakdown, setFeeBreakdown] = useState<{
+  domain_fee: number;
+  late_fine: number;
+  total_payable: number;
+  is_late: boolean;
+  late_fine_start_date: string | null;
+} | null>(null);
+
   const {
     register,
     getValues,
@@ -601,6 +610,10 @@ const selectedDomain = useMemo(
           student.documents ||
             {},
         );
+
+        if (student.fee_breakdown) {
+  setFeeBreakdown(student.fee_breakdown);
+}
 
         switch (
           student.next_step
@@ -2448,15 +2461,63 @@ if (
                     </p>
                   </div>
 
-                  <div className="border-t border-slate-200 bg-slate-50 p-5 sm:min-w-[190px] sm:border-l sm:border-t-0 sm:p-6">
-                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
-                      Payable Fee / शुल्क
-                    </p>
+                 <div className="border-t border-slate-200 bg-slate-50 p-5 sm:min-w-[220px] sm:border-l sm:border-t-0 sm:p-6">
+  <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
+    Payable Fee / शुल्क
+  </p>
 
-                    <p className="mt-2 text-3xl font-black text-[#071a2f]">
-                      ₹{selectedDomain?.fee ?? 0}
-                    </p>
-                  </div>
+  {feeBreakdown ? (
+    <div className="mt-3 space-y-2">
+      {/* Domain Fee */}
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="text-slate-600">
+          Domain Fee
+        </span>
+        <span className="font-semibold text-[#071a2f]">
+          ₹{feeBreakdown.domain_fee}
+        </span>
+      </div>
+
+      {/* Late Fine (agar apply hui ho) */}
+      {feeBreakdown.is_late && (
+        <div className="flex items-center justify-between gap-3 text-sm text-red-600">
+          <span>
+            Late Fine
+          </span>
+          <span className="font-semibold">
+            + ₹{feeBreakdown.late_fine}
+          </span>
+        </div>
+      )}
+
+      {/* Total */}
+      <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-2">
+        <span className="text-sm font-bold text-[#071a2f]">
+          Total
+        </span>
+        <span className="text-2xl font-black text-[#071a2f]">
+          ₹{feeBreakdown.total_payable}
+        </span>
+      </div>
+
+      {/* Late fine warning */}
+      {feeBreakdown.is_late && (
+        <p className="mt-2 text-xs leading-5 text-amber-600">
+          Late fine applied because payment
+          is being made after{" "}
+          <strong>
+            {feeBreakdown.late_fine_start_date}
+          </strong>
+          .
+        </p>
+      )}
+    </div>
+  ) : (
+    <p className="mt-2 text-3xl font-black text-[#071a2f]">
+      ₹{selectedDomain?.fee ?? 0}
+    </p>
+  )}
+</div>
                 </div>
 
                 <div className="border-t border-emerald-100 bg-emerald-50 p-4 sm:p-5">
@@ -2675,7 +2736,7 @@ const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
     setPreviewUrl(existingFile || null);
   }, [selectedFile, existingFile]);
-  
+
   const handleRemove = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();

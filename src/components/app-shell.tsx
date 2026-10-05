@@ -133,6 +133,7 @@ const adminMenu = mapMenu([
     "/admin/college-payments",
     BadgeIndianRupee,
   ],
+   ["Late Fine Settings", "/admin/late-fine", Settings],
 ]);
 
 const collegeMenu = mapMenu([
