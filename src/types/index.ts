@@ -89,6 +89,9 @@ export interface Mentor {
   email: string;
   qualification: string;
   profile_photo?: string;
+   signature?: string | null;
+   username?: string | null; 
+   user_id?: number | null;    
   status?: "active" | "inactive";
   domain_id?: number | null;
 college_id?: number | null;

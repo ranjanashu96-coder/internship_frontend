@@ -9,21 +9,30 @@ import { z } from "zod";
 
 import {
   adminService,
-  type CreateMentorPayload,
 } from "@/lib/services";
 import type { College, Domain } from "@/types";
 import { Button, Input, PageHeader } from "@/components/ui";
 
+/* -------------------------------------------------------------------------- */
+/* Schema                                                                     */
+/* -------------------------------------------------------------------------- */
+
 const mentorSchema = z
   .object({
-    name: z.string().trim().min(2, "Mentor name is required"),
+    name: z
+      .string()
+      .trim()
+      .min(2, "Mentor name is required"),
+
     employee_id: z
       .string()
       .trim()
       .min(2, "Employee ID is required"),
+
     designation: z.string().trim().optional(),
     department: z.string().trim().optional(),
     specialization: z.string().trim().optional(),
+
     mobile: z
       .string()
       .trim()
@@ -33,37 +42,58 @@ const mentorSchema = z
           !value || /^[6-9]\d{9}$/.test(value),
         "Enter a valid 10 digit mobile number",
       ),
+
     email: z
       .string()
       .trim()
       .email("Valid email is required"),
+
     qualification: z.string().trim().optional(),
-    profile_photo: z.string().trim().optional(),
+
+    // ✅ File fields (FileList)
+    profile_photo: z.any().optional(),
+    signature: z.any().optional(),
+
     username: z.string().trim().optional(),
+
     domain_id: z.coerce
       .number()
       .min(1, "Domain is required"),
+
     college_id: z.union([
       z.coerce.number().min(1),
       z.literal(""),
     ]),
+
     status: z.enum(["active", "inactive"]),
+
     password: z
       .string()
-      .min(8, "Password must contain at least 8 characters"),
+      .min(
+        8,
+        "Password must contain at least 8 characters",
+      ),
+
     confirm_password: z
       .string()
       .min(1, "Confirm password is required"),
   })
   .refine(
-    (data) => data.password === data.confirm_password,
+    (data) =>
+      data.password === data.confirm_password,
     {
       message: "Passwords do not match",
       path: ["confirm_password"],
     },
   );
 
-type MentorFormValues = z.infer<typeof mentorSchema>;
+type MentorFormValues = z.infer<
+  typeof mentorSchema
+>;
+
+/* -------------------------------------------------------------------------- */
+/* Page                                                                       */
+/* -------------------------------------------------------------------------- */
 
 export default function AddMentorPage() {
   const router = useRouter();
@@ -88,7 +118,8 @@ export default function AddMentorPage() {
       mobile: "",
       email: "",
       qualification: "",
-      profile_photo: "",
+      profile_photo: undefined,
+      signature: undefined,
       username: "",
       domain_id: 0,
       college_id: "",
@@ -97,6 +128,10 @@ export default function AddMentorPage() {
       confirm_password: "",
     },
   });
+
+  /* ------------------------------------------------------------------------ */
+  /* Load options                                                             */
+  /* ------------------------------------------------------------------------ */
 
   useEffect(() => {
     const loadOptions = async () => {
@@ -141,42 +176,84 @@ export default function AddMentorPage() {
     loadOptions();
   }, []);
 
-  const onSubmit = async (
-    values: MentorFormValues,
-  ) => {
-    try {
-      const {
-        confirm_password,
-        college_id,
-        profile_photo,
-        ...rest
-      } = values;
+  /* ------------------------------------------------------------------------ */
+  /* Submit                                                                   */
+  /* ------------------------------------------------------------------------ */
 
-      const payload: CreateMentorPayload = {
-        ...rest,
-        domain_id: Number(values.domain_id),
-        college_id:
-          college_id === ""
-            ? null
-            : Number(college_id),
-        profile_photo: profile_photo || null,
-      };
+const onSubmit = async (
+  values: MentorFormValues,
+) => {
+  try {
+    const {
+      confirm_password,
+      college_id,
+      profile_photo,
+      signature,
+      ...rest
+    } = values;
 
-      await adminService.createMentor(payload);
+    const formData = new FormData();
 
-      toast.success(
-        "Mentor profile and login account created successfully",
-      );
+    formData.append("name", rest.name);
+    formData.append("employee_id", rest.employee_id);
+    formData.append("designation", rest.designation || "");
+    formData.append("department", rest.department || "");
+    formData.append("specialization", rest.specialization || "");
+    formData.append("mobile", rest.mobile || "");
+    formData.append("email", rest.email);
+    formData.append("qualification", rest.qualification || "");
+    formData.append("username", rest.username || "");
+    formData.append("password", rest.password);
+    formData.append("status", rest.status);
+    formData.append("domain_id", String(values.domain_id));
 
-      router.push("/admin/mentors");
-      router.refresh();
-    } catch (error: any) {
-      toast.error(
-        error?.response?.data?.message ??
-          "Unable to create mentor",
-      );
+    // ✅ FIX: typeof check
+    if (
+      typeof college_id === "number" &&
+      college_id > 0
+    ) {
+      formData.append("college_id", String(college_id));
     }
-  };
+
+    // ✅ Profile photo file
+    const profilePhotoFile =
+      profile_photo && profile_photo[0]
+        ? profile_photo[0]
+        : null;
+
+    if (profilePhotoFile) {
+      formData.append("profile_photo", profilePhotoFile);
+    }
+
+    // ✅ Signature file
+    const signatureFile =
+      signature && signature[0]
+        ? signature[0]
+        : null;
+
+    if (signatureFile) {
+      formData.append("signature", signatureFile);
+    }
+
+    await adminService.createMentor(formData);
+
+    toast.success(
+      "Mentor profile and login account created successfully",
+    );
+
+    router.push("/admin/mentors");
+    router.refresh();
+  } catch (error: any) {
+    toast.error(
+      error?.response?.data?.message ??
+        "Unable to create mentor",
+    );
+  }
+};
+
+  /* ------------------------------------------------------------------------ */
+  /* Render                                                                   */
+  /* ------------------------------------------------------------------------ */
 
   return (
     <div>
@@ -189,6 +266,9 @@ export default function AddMentorPage() {
         onSubmit={handleSubmit(onSubmit)}
         className="grid gap-6 rounded-2xl border bg-white p-6 shadow-sm"
       >
+        {/* ---------------------------------------------------------------- */}
+        {/* Mentor information                                               */}
+        {/* ---------------------------------------------------------------- */}
         <section>
           <h2 className="mb-4 text-lg font-semibold">
             Mentor information
@@ -305,11 +385,42 @@ export default function AddMentorPage() {
               </select>
             </Field>
 
+            {/* ✅ Profile Photo upload */}
             <Field
-              label="Profile photo URL"
+              label="Profile Photo"
               error={errors.profile_photo?.message}
             >
-              <Input {...register("profile_photo")} />
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                className="input"
+                {...register("profile_photo")}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Upload a clear profile photo
+                (PNG/JPG/WebP, max 5MB).
+              </p>
+            </Field>
+
+            {/* ✅ Mentor Signature upload */}
+            <Field
+              label="Mentor Signature"
+              error={errors.signature?.message}
+            >
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                className="input"
+                {...register("signature")}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Upload a clear signature image (PNG
+                with transparent background
+                recommended). This will be used as the
+                Supervisor / Mentor signature on all
+                documents — attendance log, logbook,
+                internship report, and certificate.
+              </p>
             </Field>
 
             <Field
@@ -331,6 +442,9 @@ export default function AddMentorPage() {
           </div>
         </section>
 
+        {/* ---------------------------------------------------------------- */}
+        {/* Login account                                                    */}
+        {/* ---------------------------------------------------------------- */}
         <section className="border-t pt-6">
           <h2 className="mb-4 text-lg font-semibold">
             Login account
@@ -372,6 +486,9 @@ export default function AddMentorPage() {
           </div>
         </section>
 
+        {/* ---------------------------------------------------------------- */}
+        {/* Actions                                                          */}
+        {/* ---------------------------------------------------------------- */}
         <div className="flex justify-end gap-3 border-t pt-6">
           <Button
             type="button"
@@ -397,13 +514,17 @@ export default function AddMentorPage() {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Field wrapper                                                              */
+/* -------------------------------------------------------------------------- */
+
 function Field({
   label,
   error,
   children,
 }: {
   label: string;
-  error?: string;
+  error?: unknown;
   children: React.ReactNode;
 }) {
   return (
@@ -414,7 +535,7 @@ function Field({
 
       {children}
 
-      {error && (
+      {typeof error === "string" && (
         <p className="mt-1 text-xs text-red-600">
           {error}
         </p>

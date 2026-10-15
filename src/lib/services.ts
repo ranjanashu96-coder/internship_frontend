@@ -1598,38 +1598,57 @@ saveCollegeDomainFees: (
       `/admin/mentors/${id}`,
     ),
 
-  createMentor: (data: CreateMentorPayload) =>
-    api.post<
-      ApiResponse<{
-        mentor: Mentor;
-        user: {
-          id: number;
-          username: string;
-          email: string;
-          role: string;
-          college_id: number | null;
-          status: string;
-        };
-      }>
-    >("/admin/mentors", data),
+ createMentor: (data: FormData | CreateMentorPayload) =>
+  api.post<
+    ApiResponse<{
+      mentor: Mentor & { signature?: string | null };
+      user: {
+        id: number;
+        username: string;
+        email: string;
+        role: string;
+        college_id: number | null;
+        status: string;
+      };
+      assigned_students?: number;
+    }>
+  >("/admin/mentors", data),
 
-  updateMentor: (
-    id: number,
-    data: UpdateMentorPayload,
-  ) =>
-    api.put<
-      ApiResponse<{
-        mentor: Mentor;
-        user: {
-          id: number;
-          username: string;
-          email: string;
-          role: string;
-          college_id: number | null;
-          status: string;
-        };
-      }>
-    >(`/admin/mentors/${id}`, data),
+updateMentor: (
+  id: number,
+  data: FormData | UpdateMentorPayload,
+) =>
+  api.put<
+    ApiResponse<{
+      mentor: Mentor & { signature?: string | null };
+      user: {
+        id: number;
+        username: string;
+        email: string;
+        role: string;
+        college_id: number | null;
+        status: string;
+      };
+    }>
+  >(`/admin/mentors/${id}`, data),
+
+  // updateMentor: (
+  //   id: number,
+  //   data: UpdateMentorPayload,
+  // ) =>
+  //   api.put<
+  //     ApiResponse<{
+  //       mentor: Mentor;
+  //       user: {
+  //         id: number;
+  //         username: string;
+  //         email: string;
+  //         role: string;
+  //         college_id: number | null;
+  //         status: string;
+  //       };
+  //     }>
+  //   >(`/admin/mentors/${id}`, data),
 
   deleteMentor: (id: number) =>
     api.delete<ApiResponse<Record<string, never>>>(
