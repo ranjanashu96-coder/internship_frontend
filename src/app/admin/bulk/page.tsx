@@ -106,6 +106,21 @@ const operations: Operation[] = [
     group:
       "automation",
   },
+
+   {
+    type: "consent_letters",
+    title: "Consent Letters",
+    description: "Generate college consent letters for internship placement.",
+    group: "documents",
+  },
+
+  // ✅ NEW: Department Certificates
+  {
+    type: "department_certificates",
+    title: "Department Certificates",
+    description: "Generate department completion certificates signed by HOD.",
+    group: "documents",
+  },
   {
     type: "attendance",
     title:

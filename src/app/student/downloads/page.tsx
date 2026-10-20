@@ -53,6 +53,9 @@ const documentLabels:
 
     offer_letter:
       "Internship Offer Letter",
+
+   consent_letter: "Consent Letter",
+  department_certificate: "Department Certificate",
   };
 
 const getErrorMessage = (

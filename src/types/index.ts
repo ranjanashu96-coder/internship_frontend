@@ -197,7 +197,9 @@ export type BulkJobType =
   | "log_books"
   | "certificates"
   | "zip_documents"
-  | "full_internship_process";
+  | "full_internship_process"
+   | "consent_letters"            // ✅ NEW
+  | "department_certificates";   // ✅ NEW
 
 
 export type BulkJobStatus =
