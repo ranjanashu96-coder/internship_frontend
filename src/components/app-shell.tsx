@@ -134,6 +134,11 @@ const adminMenu = mapMenu([
     BadgeIndianRupee,
   ],
    ["Late Fine Settings", "/admin/late-fine", Settings],
+   [
+    "Generated Docs",
+    "/admin/documents",
+    FileText,
+  ],
 ]);
 
 const collegeMenu = mapMenu([

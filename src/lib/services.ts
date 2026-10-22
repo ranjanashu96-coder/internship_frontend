@@ -2036,6 +2036,25 @@ bulkPreview: (
     },
   ),
 
+   generatedDocuments: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    type?: string;
+  }) =>
+    api.get<
+      ApiResponse<{
+        items: any[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>
+    >(
+      "/admin/generated-documents",
+      { params },
+    ),
+
 /*
 |--------------------------------------------------------------------------
 | Process
@@ -2076,6 +2095,23 @@ bulkStatus: (
 | Job History
 |--------------------------------------------------------------------------
 */
+
+  generateSingleStudentDocument: (
+    type: "acceptance_letters" | "certificates",
+    payload: {
+      student_ids: number[];
+      generated_at: string;
+      issued_date: string;
+     force_generate?: boolean; 
+    }
+  ) =>
+    api.post<ApiResponse<BulkProcessResponse>>(
+      "/admin/bulk/process",
+      {
+        type,
+        payload,
+      },
+    ),
 
 bulkJobs: (
   params?: {
