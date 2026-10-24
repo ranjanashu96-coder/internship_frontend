@@ -60,6 +60,8 @@ const initialFilters: AdminReportParams = {
   payment_status: "",
   from_date: "",
   to_date: "",
+  internship_start_from: "",   // 👈 NEW
+  internship_start_to: "",     // 👈 NEW
 };
 
 const reportOptions: Array<{
@@ -282,6 +284,8 @@ export default function AdminReportsPage() {
         filters.payment_status,
         filters.from_date,
         filters.to_date,
+        filters.internship_start_from,   // 👈 NEW
+      filters.internship_start_to,     // 👈 NEW
       ].filter(Boolean).length,
     [filters],
   );
@@ -955,6 +959,34 @@ export default function AdminReportsPage() {
                 }
               />
             </FilterField>
+
+            <FilterField label="Internship Start From">
+  <Input
+    type="date"
+    value={filters.internship_start_from || ""}
+    className="h-11 rounded-xl border-slate-200 font-medium"
+    onChange={(event) =>
+      updateFilter(
+        "internship_start_from",
+        event.target.value,
+      )
+    }
+  />
+</FilterField>
+
+<FilterField label="Internship Start To">
+  <Input
+    type="date"
+    value={filters.internship_start_to || ""}
+    className="h-11 rounded-xl border-slate-200 font-medium"
+    onChange={(event) =>
+      updateFilter(
+        "internship_start_to",
+        event.target.value,
+      )
+    }
+  />
+</FilterField>
 
             <div className="flex items-end md:col-span-2">
               <Button

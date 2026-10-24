@@ -171,6 +171,8 @@ export interface AdminReportParams {
   payment_status?: string;
   from_date?: string;
   to_date?: string;
+  internship_start_from?: string;
+  internship_start_to?: string;
 }
 
 export interface AdminReportColumn {
