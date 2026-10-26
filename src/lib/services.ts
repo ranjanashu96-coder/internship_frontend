@@ -2099,7 +2099,7 @@ bulkStatus: (
 */
 
   generateSingleStudentDocument: (
-    type: "acceptance_letters" | "certificates",
+    type: "acceptance_letters" | "certificates" | "consent_letters",
     payload: {
       student_ids: number[];
       generated_at: string;
