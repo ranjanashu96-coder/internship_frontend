@@ -2098,22 +2098,26 @@ bulkStatus: (
 |--------------------------------------------------------------------------
 */
 
-  generateSingleStudentDocument: (
-    type: "acceptance_letters" | "certificates" | "consent_letters",
-    payload: {
-      student_ids: number[];
-      generated_at: string;
-      issued_date: string;
-     force_generate?: boolean; 
-    }
-  ) =>
-    api.post<ApiResponse<BulkProcessResponse>>(
-      "/admin/bulk/process",
-      {
-        type,
-        payload,
-      },
-    ),
+ generateSingleStudentDocument: (
+  type:
+    | "acceptance_letters"
+    | "certificates"
+    | "consent_letters"
+    | "department_certificates",
+  payload: {
+    student_ids: number[];
+    generated_at: string;
+    issued_date: string;
+    force_generate?: boolean;
+  }
+) =>
+  api.post<ApiResponse<BulkProcessResponse>>(
+    "/admin/bulk/process",
+    {
+      type,
+      payload,
+    },
+  ),
 
 bulkJobs: (
   params?: {

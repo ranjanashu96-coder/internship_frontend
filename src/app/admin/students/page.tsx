@@ -89,9 +89,13 @@ export default function StudentsPage() {
   
   // State for Docs modal
   const [documentStudents, setDocumentStudents] = useState<StudentWithRelations[] | null>(null);
-  const [generatingDoc, setGeneratingDoc] = useState<
-    "acceptance_letters" | "certificates" | "consent_letters" | null
-  >(null);
+ const [generatingDoc, setGeneratingDoc] = useState<
+  | "acceptance_letters"
+  | "certificates"
+  | "consent_letters"
+  | "department_certificates"
+  | null
+>(null);
   const [collegesLoading, setCollegesLoading] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
   const [passwordStudent, setPasswordStudent] = useState<StudentWithRelations | null>(null);
@@ -215,54 +219,65 @@ export default function StudentsPage() {
     filters.status !== "";
 
   // 🔥 MAIN FIX: This is where the document generation happens
-  const handleGenerateDocument = useCallback(async (
-    type: "acceptance_letters" | "certificates" | "consent_letters",
-    date: string
-  ) => {
-    if (!documentStudents || documentStudents.length === 0) {
-      toast.error("No students selected");
-      return;
-    }
+ const handleGenerateDocument = useCallback(async (
+  type:
+    | "acceptance_letters"
+    | "certificates"
+    | "consent_letters"
+    | "department_certificates",
+  date: string
+) => {
+  if (!documentStudents || documentStudents.length === 0) {
+    toast.error("No students selected");
+    return;
+  }
 
-    // ✅ CRITICAL: Verify type is valid
-    if (!type || !["acceptance_letters", "certificates", "consent_letters"].includes(type)) {
-      toast.error(`Invalid document type: ${type}`);
-      console.error("❌ Invalid document type received:", type);
-      return;
-    }
+  if (
+    !type ||
+    ![
+      "acceptance_letters",
+      "certificates",
+      "consent_letters",
+      "department_certificates",
+    ].includes(type)
+  ) {
+    toast.error(`Invalid document type: ${type}`);
+    return;
+  }
 
-    console.log("✅ Generating document - Type:", type, "Date:", date, "Students:", documentStudents.length);
+  setGeneratingDoc(type);
 
-    setGeneratingDoc(type);
+  try {
+    await adminService.generateSingleStudentDocument(type, {
+      student_ids: documentStudents.map((s) => s.id),
+      generated_at: `${date}T10:00:00`,
+      issued_date: date,
+      force_generate: true,
+    });
 
-    try {
-      const response = await adminService.generateSingleStudentDocument(type, {
-        student_ids: documentStudents.map(s => s.id),
-        generated_at: `${date}T10:00:00`,
-        issued_date: date,
-        force_generate: true,
-      });
+    const typeLabel =
+      type === "acceptance_letters"
+        ? "Offer Letters"
+        : type === "certificates"
+          ? "Certificates"
+          : type === "consent_letters"
+            ? "Consent Letters"
+            : "Department Certificates";
 
-      console.log("✅ Backend response:", response.data);
+    toast.success(
+      `${typeLabel} generation started for ${documentStudents.length} students!`
+    );
 
-      const typeLabel =
-        type === "acceptance_letters"
-          ? "Offer Letters"
-          : type === "certificates"
-            ? "Certificates"
-            : "Consent Letters";
-
-      toast.success(`${typeLabel} generation started for ${documentStudents.length} students!`);
-
-      setDocumentStudents(null);
-      setSelectedStudentIds([]);
-    } catch (error: any) {
-      console.error("❌ Generation failed:", error);
-      toast.error(error?.response?.data?.message || "Failed to start generation");
-    } finally {
-      setGeneratingDoc(null);
-    }
-  }, [documentStudents]);
+    setDocumentStudents(null);
+    setSelectedStudentIds([]);
+  } catch (error: any) {
+    toast.error(
+      error?.response?.data?.message || "Failed to start generation"
+    );
+  } finally {
+    setGeneratingDoc(null);
+  }
+}, [documentStudents]);
 
   const columns = useMemo<ColumnDef<StudentWithRelations>[]>(
     () => [
@@ -744,15 +759,27 @@ function GenerateDocumentModal({
 }: {
   students: StudentWithRelations[];
   onClose: () => void;
-  onGenerate: (
-    type: "acceptance_letters" | "certificates" | "consent_letters",
-    date: string
-  ) => Promise<void>;
-  loading: "acceptance_letters" | "certificates" | "consent_letters" | null;
+ onGenerate: (
+  type:
+    | "acceptance_letters"
+    | "certificates"
+    | "consent_letters"
+    | "department_certificates",
+  date: string
+) => Promise<void>;
+loading:
+  | "acceptance_letters"
+  | "certificates"
+  | "consent_letters"
+  | "department_certificates"
+  | null;
 }) {
   const [docType, setDocType] = useState<
-    "acceptance_letters" | "certificates" | "consent_letters"
-  >("acceptance_letters");
+  | "acceptance_letters"
+  | "certificates"
+  | "consent_letters"
+  | "department_certificates"
+>("acceptance_letters");
 
   const [date, setDate] = useState(() => {
     const today = new Date();
@@ -764,7 +791,15 @@ function GenerateDocumentModal({
     console.log("🔥 Modal - docType:", JSON.stringify(docType));
     console.log("🔥 Modal - date:", date);
 
-    if (!docType || !["acceptance_letters", "certificates", "consent_letters"].includes(docType)) {
+   if (
+  !docType ||
+  ![
+    "acceptance_letters",
+    "certificates",
+    "consent_letters",
+    "department_certificates",
+  ].includes(docType)
+) {
       toast.error(`Invalid document type selected: "${docType}"`);
       return;
     }
@@ -802,20 +837,24 @@ function GenerateDocumentModal({
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
               Document Type
             </label>
-            <select
-              value={docType}
-              onChange={(e) => {
-                const value = e.target.value as "acceptance_letters" | "certificates" | "consent_letters";
-                console.log("🔥 Dropdown changed to:", value);
-                setDocType(value);
-              }}
-              disabled={!!loading}
-              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
-            >
-              <option value="acceptance_letters">Acceptance / Offer Letter</option>
-              <option value="certificates">Internship Certificate</option>
-              <option value="consent_letters">Consent Letter</option>
-            </select>
+          <select
+  value={docType}
+  onChange={(e) => {
+    const value = e.target.value as
+      | "acceptance_letters"
+      | "certificates"
+      | "consent_letters"
+      | "department_certificates";
+    setDocType(value);
+  }}
+  disabled={!!loading}
+  className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
+>
+  <option value="acceptance_letters">Acceptance / Offer Letter</option>
+  <option value="certificates">Internship Certificate</option>
+  <option value="consent_letters">Consent Letter</option>
+  <option value="department_certificates">Department Certificate</option>
+</select>
           </div>
 
           <div>
