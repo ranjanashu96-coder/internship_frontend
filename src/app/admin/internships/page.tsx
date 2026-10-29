@@ -62,6 +62,7 @@ interface StudentFilters {
   payment_status: string;
   from_date: string;
   to_date: string;
+  internship_started: string;
 }
 
 const initialFilters: StudentFilters = {
@@ -73,6 +74,40 @@ const initialFilters: StudentFilters = {
   payment_status: "paid",
   from_date: "",
   to_date: "",
+  internship_started: "",
+};
+
+/*
+|--------------------------------------------------------------------------
+| Eligibility helpers
+|--------------------------------------------------------------------------
+| blocked => never eligible
+| active / completed => eligible (even if payment is pending)
+| otherwise => must be paid
+*/
+
+const isStudentEligible = (
+  student: StudentWithRelations,
+) => {
+  if (
+    student.internship_status ===
+    "blocked"
+  ) {
+    return false;
+  }
+
+  if (
+    student.internship_status ===
+      "active" ||
+    student.internship_status ===
+      "completed"
+  ) {
+    return true;
+  }
+
+  return (
+    student.payment_status === "paid"
+  );
 };
 
 export default function StudentsPage() {
@@ -101,8 +136,10 @@ export default function StudentsPage() {
   const [loading, setLoading] =
     useState(true);
 
-  const [selectedStudentIds, setSelectedStudentIds] =
-    useState<number[]>([]);
+  const [
+    selectedStudentIds,
+    setSelectedStudentIds,
+  ] = useState<number[]>([]);
 
   const [bulkStartDate, setBulkStartDate] =
     useState("");
@@ -111,18 +148,18 @@ export default function StudentsPage() {
     useState(false);
 
   const [
-  internshipStartDates,
-  setInternshipStartDates,
-] = useState<Record<number, string>>(
-  {},
-);
+    internshipStartDates,
+    setInternshipStartDates,
+  ] = useState<Record<number, string>>(
+    {},
+  );
 
-const [
-  startingStudentId,
-  setStartingStudentId,
-] = useState<number | null>(
-  null,
-);
+  const [
+    startingStudentId,
+    setStartingStudentId,
+  ] = useState<number | null>(
+    null,
+  );
 
   const [collegesLoading, setCollegesLoading] =
     useState(true);
@@ -189,6 +226,9 @@ const [
             to_date:
               filters.to_date ||
               undefined,
+            internship_started:
+              filters.internship_started ||
+              undefined,
           });
 
         const result =
@@ -228,6 +268,7 @@ const [
       filters.payment_status,
       filters.from_date,
       filters.to_date,
+      filters.internship_started,
       limit,
       page,
     ],
@@ -272,12 +313,7 @@ const [
   const eligibleStudentIds = useMemo(
     () =>
       students
-        .filter(
-          (student) =>
-            student.payment_status === "paid" &&
-            student.internship_status !== "blocked" &&
-            student.internship_status !== "completed",
-        )
+        .filter(isStudentEligible)
         .map((student) => student.id),
     [students],
   );
@@ -288,10 +324,14 @@ const [
       selectedStudentIds.includes(id),
     );
 
-  const toggleStudentSelection = (studentId: number) => {
+  const toggleStudentSelection = (
+    studentId: number,
+  ) => {
     setSelectedStudentIds((current) =>
       current.includes(studentId)
-        ? current.filter((id) => id !== studentId)
+        ? current.filter(
+            (id) => id !== studentId,
+          )
         : [...current, studentId],
     );
   };
@@ -300,122 +340,142 @@ const [
     setSelectedStudentIds((current) =>
       allEligibleSelected
         ? current.filter(
-            (id) => !eligibleStudentIds.includes(id),
+            (id) =>
+              !eligibleStudentIds.includes(
+                id,
+              ),
           )
         : Array.from(
-            new Set([...current, ...eligibleStudentIds]),
+            new Set([
+              ...current,
+              ...eligibleStudentIds,
+            ]),
           ),
     );
   };
 
-  const handleBulkStartInternship = async () => {
-    if (!selectedStudentIds.length) {
-      toast.error("Please select at least one eligible student");
-      return;
-    }
-
-    if (!bulkStartDate) {
-      toast.error("Please select a common internship start date");
-      return;
-    }
-
-    try {
-      setBulkStarting(true);
-
-      const response =
-        await adminService.startStudentInternshipsBulk(
-          selectedStudentIds,
-          bulkStartDate,
-        );
-
-      const result = response.data.data;
-
-      toast.success(
-        `${result.started_count} internship(s) started/scheduled${
-          result.failed_count
-            ? `; ${result.failed_count} skipped`
-            : ""
-        }`,
-      );
-
-      setSelectedStudentIds([]);
-      setBulkStartDate("");
-      await loadStudents();
-    } catch (error: any) {
-      toast.error(
-        error?.response?.data?.message ??
-          "Unable to start selected internships",
-      );
-    } finally {
-      setBulkStarting(false);
-    }
-  };
-const handleStartInternship =
-  useCallback(
-    async (
-      student:
-        StudentWithRelations,
-    ) => {
-      const startDate =
-        internshipStartDates[
-          student.id
-        ] ||
-        student
-          .internship_start_date ||
-        "";
-
-      if (!startDate) {
+  const handleBulkStartInternship =
+    async () => {
+      if (!selectedStudentIds.length) {
         toast.error(
-          "Please select internship start date",
+          "Please select at least one eligible student",
         );
         return;
       }
 
-      if (
-        student.payment_status !==
-        "paid"
-      ) {
+      if (!bulkStartDate) {
         toast.error(
-          "Student payment is not completed",
+          "Please select a common internship start date",
         );
         return;
       }
 
       try {
-        setStartingStudentId(
-          student.id,
-        );
+        setBulkStarting(true);
 
         const response =
-          await adminService
-            .startStudentInternship(
+          await adminService.startStudentInternshipsBulk(
+            selectedStudentIds,
+            bulkStartDate,
+          );
+
+        const result =
+          response.data.data;
+
+        toast.success(
+          `${
+            result.started_count
+          } internship(s) started/scheduled${
+            result.failed_count
+              ? `; ${result.failed_count} skipped`
+              : ""
+          }`,
+        );
+
+        setSelectedStudentIds([]);
+        setBulkStartDate("");
+        await loadStudents();
+      } catch (error: any) {
+        toast.error(
+          error?.response?.data?.message ??
+            "Unable to start selected internships",
+        );
+      } finally {
+        setBulkStarting(false);
+      }
+    };
+
+  const handleStartInternship =
+    useCallback(
+      async (
+        student: StudentWithRelations,
+      ) => {
+        const startDate =
+          internshipStartDates[
+            student.id
+          ] ||
+          student.internship_start_date ||
+          "";
+
+        if (!startDate) {
+          toast.error(
+            "Please select internship start date",
+          );
+          return;
+        }
+
+        // only block if student is not active/completed AND not paid
+        const canBypassPayment =
+          student.internship_status ===
+            "active" ||
+          student.internship_status ===
+            "completed";
+
+        if (
+          student.payment_status !==
+            "paid" &&
+          !canBypassPayment
+        ) {
+          toast.error(
+            "Student payment is not completed",
+          );
+          return;
+        }
+
+        try {
+          setStartingStudentId(
+            student.id,
+          );
+
+          const response =
+            await adminService.startStudentInternship(
               student.id,
               startDate,
             );
 
-        toast.success(
-          response.data.message ||
-            "Internship start date saved",
-        );
+          toast.success(
+            response.data.message ||
+              "Internship start date saved",
+          );
 
-        await loadStudents();
-      } catch (error: any) {
-        toast.error(
-          error?.response?.data
-            ?.message ??
-            "Unable to start internship",
-        );
-      } finally {
-        setStartingStudentId(
-          null,
-        );
-      }
-    },
-    [
-      internshipStartDates,
-      loadStudents,
-    ],
-  );
+          await loadStudents();
+        } catch (error: any) {
+          toast.error(
+            error?.response?.data
+              ?.message ??
+              "Unable to start internship",
+          );
+        } finally {
+          setStartingStudentId(
+            null,
+          );
+        }
+      },
+      [
+        internshipStartDates,
+        loadStudents,
+      ],
+    );
 
   const hasFilters =
     filters.search !== "" ||
@@ -425,258 +485,365 @@ const handleStartInternship =
     filters.status !== "" ||
     filters.payment_status !== "paid" ||
     filters.from_date !== "" ||
-    filters.to_date !== "";
+    filters.to_date !== "" ||
+    filters.internship_started !== "";
 
   const columns = useMemo<
-  ColumnDef<StudentWithRelations>[]
->(
-  () => [
-    {
-      id: "select",
-      header: () => (
-        <input
-          type="checkbox"
-          checked={allEligibleSelected}
-          onChange={toggleAllEligibleStudents}
-          aria-label="Select all eligible students on this page"
-          className="h-4 w-4 rounded border-slate-300"
-        />
-      ),
-      cell: ({ row }) => {
-        const student = row.original;
-        const eligible =
-          student.payment_status === "paid" &&
-          student.internship_status !== "blocked" &&
-          student.internship_status !== "completed";
-
-        return (
+    ColumnDef<StudentWithRelations>[]
+  >(
+    () => [
+      {
+        id: "select",
+        header: () => (
           <input
             type="checkbox"
-            disabled={!eligible}
-            checked={selectedStudentIds.includes(student.id)}
-            onChange={() => toggleStudentSelection(student.id)}
-            aria-label={`Select ${student.name}`}
-            className="h-4 w-4 rounded border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
+            checked={allEligibleSelected}
+            onChange={
+              toggleAllEligibleStudents
+            }
+            aria-label="Select all eligible students on this page"
+            className="h-4 w-4 rounded border-slate-300"
           />
-        );
-      },
-    },
-    {
-      id: "student",
-      header: "Student",
-      cell: ({ row }) => {
-        const student = row.original;
+        ),
+        cell: ({ row }) => {
+          const student = row.original;
+          const eligible =
+            isStudentEligible(student);
 
-        return (
-          <div className="w-[190px]">
-            <p className="font-semibold text-slate-900">
-              {student.name || "-"}
-            </p>
-
-            <p className="mt-1 text-xs font-medium text-slate-600">
-              {student.registration_number || "-"}
-            </p>
-
-            <p className="text-xs text-slate-500">
-              {student.student_id || "ID not assigned"}
-            </p>
-
-            {student.email && (
-              <p className="mt-1 truncate text-xs text-slate-500">
-                {student.email}
-              </p>
-            )}
-
-            {student.mobile && (
-              <p className="text-xs text-slate-500">
-                {student.mobile}
-              </p>
-            )}
-          </div>
-        );
-      },
-    },
-
-    {
-      id: "college_domain",
-      header: "College / Domain",
-      cell: ({ row }) => (
-        <div className="w-[180px]">
-          <p className="line-clamp-2 font-medium text-slate-900">
-            {row.original.college?.name || "-"}
-          </p>
-
-          {row.original.college?.code && (
-            <p className="mt-1 text-xs text-slate-500">
-              {row.original.college.code}
-            </p>
-          )}
-
-          {row.original.domain?.domain_name && (
-            <p className="mt-1 text-xs font-medium text-indigo-600">
-              {row.original.domain.domain_name}
-            </p>
-          )}
-        </div>
-      ),
-    },
-
-    {
-      id: "academic",
-      header: "Academic",
-      cell: ({ row }) => (
-        <div className="w-[165px]">
-          <p className="line-clamp-2 font-medium text-slate-800">
-            {row.original.programme || "-"}
-          </p>
-
-          {row.original.major_subject && (
-            <p className="mt-1 text-xs text-slate-500">
-              {row.original.major_subject}
-            </p>
-          )}
-
-          <p className="mt-1 text-xs text-slate-500">
-            {row.original.session || "-"} Â· Sem{" "}
-            {row.original.semester || "-"}
-          </p>
-        </div>
-      ),
-    },
-
-    {
-      id: "status",
-      header: "Status",
-      cell: ({ row }) => (
-        <div className="w-[110px] space-y-2">
-          <InternshipStatusBadge
-            status={row.original.internship_status}
-          />
-
-          <div>
-            <PaymentStatusBadge
-              status={row.original.payment_status}
+          return (
+            <input
+              type="checkbox"
+              disabled={!eligible}
+              checked={selectedStudentIds.includes(
+                student.id,
+              )}
+              onChange={() =>
+                toggleStudentSelection(
+                  student.id,
+                )
+              }
+              aria-label={`Select ${student.name}`}
+              className="h-4 w-4 rounded border-slate-300 disabled:cursor-not-allowed disabled:opacity-40"
             />
-          </div>
-        </div>
-      ),
-    },
+          );
+        },
+      },
+      {
+        id: "student",
+        header: "Student",
+        cell: ({ row }) => {
+          const student = row.original;
 
-    {
-      id: "internship_start",
-      header: "Start Internship",
-      cell: ({ row }) => {
-        const student = row.original;
-
-        if (student.payment_status !== "paid") {
           return (
-            <div className="w-[200px]">
-              <p className="text-xs font-medium text-amber-600">
-                Payment pending
+            <div className="w-[190px]">
+              <p className="font-semibold text-slate-900">
+                {student.name || "-"}
               </p>
+
+              <p className="mt-1 text-xs font-medium text-slate-600">
+                {student.registration_number ||
+                  "-"}
+              </p>
+
+              <p className="text-xs text-slate-500">
+                {student.student_id ||
+                  "ID not assigned"}
+              </p>
+
+              {student.email && (
+                <p className="mt-1 truncate text-xs text-slate-500">
+                  {student.email}
+                </p>
+              )}
+
+              {student.mobile && (
+                <p className="text-xs text-slate-500">
+                  {student.mobile}
+                </p>
+              )}
             </div>
           );
-        }
+        },
+      },
 
-        if (student.internship_status === "completed") {
-          return (
-            <div className="w-[200px]">
-              <Badge tone="green">
-                Completed
-              </Badge>
-            </div>
-          );
-        }
+      {
+        id: "college_domain",
+        header: "College / Domain",
+        cell: ({ row }) => (
+          <div className="w-[180px]">
+            <p className="line-clamp-2 font-medium text-slate-900">
+              {row.original.college?.name ||
+                "-"}
+            </p>
 
-        if (student.internship_status === "blocked") {
-          return (
-            <div className="w-[200px]">
-              <Badge tone="red">
-                Blocked
-              </Badge>
-            </div>
-          );
-        }
-
-        return (
-          <div className="w-[215px]">
-            <div className="flex items-center gap-2">
-              <Input
-                type="date"
-                value={
-                  internshipStartDates[student.id] ||
-                  student.internship_start_date ||
-                  ""
-                }
-                onChange={(event) =>
-                  setInternshipStartDates((current) => ({
-                    ...current,
-                    [student.id]: event.target.value,
-                  }))
-                }
-                className="h-9 w-[140px] px-2 text-xs"
-              />
-
-              <Button
-                type="button"
-                className="h-9 whitespace-nowrap px-3 text-xs"
-                disabled={
-                  startingStudentId === student.id
-                }
-                onClick={() =>
-                  void handleStartInternship(student)
-                }
-              >
-                {startingStudentId === student.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : student.internship_start_date ? (
-                  "Save"
-                ) : (
-                  "Start"
-                )}
-              </Button>
-            </div>
-
-            {student.internship_start_date && (
+            {row.original.college?.code && (
               <p className="mt-1 text-xs text-slate-500">
-                Current: {student.internship_start_date}
+                {row.original.college.code}
+              </p>
+            )}
+
+            {row.original.domain
+              ?.domain_name && (
+              <p className="mt-1 text-xs font-medium text-indigo-600">
+                {
+                  row.original.domain
+                    .domain_name
+                }
               </p>
             )}
           </div>
-        );
+        ),
       },
-    },
 
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-9 whitespace-nowrap px-3 text-xs"
-          onClick={() =>
-            router.push(
-              `/admin/students/${row.original.id}`,
-            )
+      {
+        id: "academic",
+        header: "Academic",
+        cell: ({ row }) => (
+          <div className="w-[165px]">
+            <p className="line-clamp-2 font-medium text-slate-800">
+              {row.original.programme ||
+                "-"}
+            </p>
+
+            {row.original.major_subject && (
+              <p className="mt-1 text-xs text-slate-500">
+                {row.original.major_subject}
+              </p>
+            )}
+
+            <p className="mt-1 text-xs text-slate-500">
+              {row.original.session || "-"}{" "}
+              · Sem{" "}
+              {row.original.semester || "-"}
+            </p>
+          </div>
+        ),
+      },
+
+      {
+        id: "status",
+        header: "Status",
+        cell: ({ row }) => (
+          <div className="w-[110px] space-y-2">
+            <InternshipStatusBadge
+              status={
+                row.original
+                  .internship_status
+              }
+            />
+
+            <div>
+              <PaymentStatusBadge
+                status={
+                  row.original
+                    .payment_status
+                }
+              />
+            </div>
+          </div>
+        ),
+      },
+
+      {
+        id: "internship_start",
+        header: "Internship",
+        cell: ({ row }) => {
+          const student = row.original;
+
+          const isNullStart =
+            !student.internship_start_date;
+
+          const isCompleted =
+            student.internship_status ===
+            "completed";
+
+          const isActive =
+            student.internship_status ===
+            "active";
+
+          const isBlocked =
+            student.internship_status ===
+            "blocked";
+
+          // ✅ Active / Completed → start date dene ka option
+          const canSetStartDate =
+            isActive || isCompleted;
+
+          // ⛔ Blocked → no input
+          if (isBlocked) {
+            return (
+              <div className="w-[215px]">
+                <Badge tone="red">
+                  Blocked
+                </Badge>
+              </div>
+            );
           }
-        >
-          <Eye className="mr-1.5 h-4 w-4" />
-          View
-        </Button>
-      ),
-    },
-  ],
-  [
-    router,
-    internshipStartDates,
-    startingStudentId,
-    handleStartInternship,
-    selectedStudentIds,
-    allEligibleSelected,
-    eligibleStudentIds,
-  ],
-);
+
+          // ✅ Active / Completed
+          if (canSetStartDate) {
+            // start date already set
+            if (!isNullStart) {
+              return (
+                <div className="w-[215px] space-y-1">
+                  {isCompleted ? (
+                    <Badge tone="green">
+                      Completed
+                    </Badge>
+                  ) : (
+                    <Badge tone="green">
+                      Active
+                    </Badge>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    Started:{" "}
+                    {
+                      student.internship_start_date
+                    }
+                  </p>
+                </div>
+              );
+            }
+
+            // start date null → input
+            return (
+              <div className="w-[215px]">
+                <p className="mb-1 text-xs font-medium text-amber-600">
+                  Not started yet
+                </p>
+
+                {isCompleted && (
+                  <div className="mb-1">
+                    <Badge tone="green">
+                      Completed
+                    </Badge>
+                  </div>
+                )}
+
+                {student.payment_status !==
+                  "paid" && (
+                  <p className="mb-1 text-[10px] font-medium text-amber-700">
+                    Payment:{" "}
+                    {student.payment_status}
+                  </p>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={
+                      internshipStartDates[
+                        student.id
+                      ] || ""
+                    }
+                    onChange={(event) =>
+                      setInternshipStartDates(
+                        (current) => ({
+                          ...current,
+                          [student.id]:
+                            event.target
+                              .value,
+                        }),
+                      )
+                    }
+                    className="h-9 w-[140px] px-2 text-xs"
+                  />
+                  <Button
+                    type="button"
+                    className="h-9 whitespace-nowrap px-3 text-xs"
+                    disabled={
+                      startingStudentId ===
+                      student.id
+                    }
+                    onClick={() =>
+                      void handleStartInternship(
+                        student,
+                      )
+                    }
+                  >
+                    {startingStudentId ===
+                    student.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Start"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            );
+          }
+
+          // 🟡 Other statuses (preloaded / registered / etc.)
+          if (
+            student.payment_status !==
+            "paid"
+          ) {
+            return (
+              <div className="w-[200px]">
+                <p className="text-xs font-medium text-amber-600">
+                  Payment pending
+                </p>
+              </div>
+            );
+          }
+
+          if (!isNullStart) {
+            return (
+              <div className="w-[215px] space-y-1">
+                <Badge>
+                  {student.internship_status ||
+                    "—"}
+                </Badge>
+                <p className="text-xs text-slate-500">
+                  Started:{" "}
+                  {
+                    student.internship_start_date
+                  }
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <div className="w-[215px]">
+              <p className="text-xs text-slate-500">
+                —
+              </p>
+            </div>
+          );
+        },
+      },
+
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-9 whitespace-nowrap px-3 text-xs"
+            onClick={() =>
+              router.push(
+                `/admin/students/${row.original.id}`,
+              )
+            }
+          >
+            <Eye className="mr-1.5 h-4 w-4" />
+            View
+          </Button>
+        ),
+      },
+    ],
+    [
+      router,
+      internshipStartDates,
+      startingStudentId,
+      handleStartInternship,
+      selectedStudentIds,
+      allEligibleSelected,
+      eligibleStudentIds,
+    ],
+  );
 
   return (
     <div className="space-y-6">
@@ -707,7 +874,7 @@ const handleStartInternship =
           </p>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
@@ -816,11 +983,42 @@ const handleStartInternship =
             }
             className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
           >
-            <option value="">All payments</option>
-            <option value="paid">Paid</option>
-            <option value="pending">Pending</option>
-            <option value="failed">Failed</option>
-            <option value="refunded">Refunded</option>
+            <option value="">
+              All payments
+            </option>
+            <option value="paid">
+              Paid
+            </option>
+            <option value="pending">
+              Pending
+            </option>
+            <option value="failed">
+              Failed
+            </option>
+            <option value="refunded">
+              Refunded
+            </option>
+          </select>
+
+          <select
+            value={filters.internship_started}
+            onChange={(event) =>
+              updateFilter(
+                "internship_started",
+                event.target.value,
+              )
+            }
+            className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
+          >
+            <option value="">
+              All start states
+            </option>
+            <option value="yes">
+              Start date set
+            </option>
+            <option value="no">
+              Not started (null)
+            </option>
           </select>
 
           <div>
@@ -830,7 +1028,10 @@ const handleStartInternship =
             <Input
               type="date"
               value={filters.from_date}
-              max={filters.to_date || undefined}
+              max={
+                filters.to_date ||
+                undefined
+              }
               onChange={(event) =>
                 updateFilter(
                   "from_date",
@@ -847,7 +1048,10 @@ const handleStartInternship =
             <Input
               type="date"
               value={filters.to_date}
-              min={filters.from_date || undefined}
+              min={
+                filters.from_date ||
+                undefined
+              }
               onChange={(event) =>
                 updateFilter(
                   "to_date",
@@ -879,7 +1083,12 @@ const handleStartInternship =
               Start multiple internships
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              {selectedStudentIds.length} selected Â· only paid and eligible students can be selected
+              {
+                selectedStudentIds.length
+              }{" "}
+              selected · active, completed
+              and paid students can be
+              selected
             </p>
           </div>
 
@@ -892,7 +1101,9 @@ const handleStartInternship =
                   type="date"
                   value={bulkStartDate}
                   onChange={(event) =>
-                    setBulkStartDate(event.target.value)
+                    setBulkStartDate(
+                      event.target.value,
+                    )
                   }
                   className="w-full pl-9 sm:w-[190px]"
                 />
@@ -903,15 +1114,19 @@ const handleStartInternship =
               type="button"
               disabled={
                 bulkStarting ||
-                selectedStudentIds.length === 0 ||
+                selectedStudentIds.length ===
+                  0 ||
                 !bulkStartDate
               }
-              onClick={() => void handleBulkStartInternship()}
+              onClick={() =>
+                void handleBulkStartInternship()
+              }
             >
               {bulkStarting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Start selected ({selectedStudentIds.length})
+              Start selected (
+              {selectedStudentIds.length})
             </Button>
           </div>
         </div>
@@ -948,8 +1163,8 @@ const handleStartInternship =
             </h3>
 
             <p className="mt-1 max-w-sm text-sm text-slate-500">
-              Change the filters or import students
-              using an Excel file.
+              Change the filters or import
+              students using an Excel file.
             </p>
 
             <Button
@@ -987,10 +1202,7 @@ const handleStartInternship =
             }
             onClick={() =>
               setPage((current) =>
-                Math.max(
-                  1,
-                  current - 1,
-                ),
+                Math.max(1, current - 1),
               )
             }
           >
@@ -1001,8 +1213,7 @@ const handleStartInternship =
             type="button"
             variant="secondary"
             disabled={
-              page >= totalPages ||
-              loading
+              page >= totalPages || loading
             }
             onClick={() =>
               setPage((current) =>
@@ -1021,9 +1232,7 @@ const handleStartInternship =
       {importOpen && (
         <StudentImportModal
           colleges={colleges}
-          collegesLoading={
-            collegesLoading
-          }
+          collegesLoading={collegesLoading}
           onClose={() =>
             setImportOpen(false)
           }
@@ -1048,8 +1257,7 @@ function StudentImportModal({
   collegesLoading: boolean;
   onClose: () => void;
   onImported: (
-    result:
-      AdminStudentImportResult,
+    result: AdminStudentImportResult,
   ) => void;
 }) {
   const [collegeId, setCollegeId] =
@@ -1067,8 +1275,7 @@ function StudentImportModal({
     );
 
   const handleFileChange = (
-    event:
-      React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const selectedFile =
       event.target.files?.[0];
@@ -1078,11 +1285,10 @@ function StudentImportModal({
       return;
     }
 
-    const extension =
-      selectedFile.name
-        .split(".")
-        .pop()
-        ?.toLowerCase();
+    const extension = selectedFile.name
+      .split(".")
+      .pop()
+      ?.toLowerCase();
 
     if (
       extension !== "xlsx" &&
@@ -1300,9 +1506,7 @@ function StudentImportModal({
           )}
 
           {result && (
-            <ImportResult
-              result={result}
-            />
+            <ImportResult result={result} />
           )}
         </div>
 
@@ -1357,8 +1561,7 @@ function StudentImportModal({
 function ImportResult({
   result,
 }: {
-  result:
-    AdminStudentImportResult;
+  result: AdminStudentImportResult;
 }) {
   return (
     <div className="space-y-5">
@@ -1476,18 +1679,10 @@ function InternshipStatusBadge({
       );
 
     case "registered":
-      return (
-        <Badge>
-          Registered
-        </Badge>
-      );
+      return <Badge>Registered</Badge>;
 
     case "preloaded":
-      return (
-        <Badge>
-          Preloaded
-        </Badge>
-      );
+      return <Badge>Preloaded</Badge>;
 
     default:
       return (
@@ -1519,17 +1714,9 @@ function PaymentStatusBadge({
       );
 
     case "refunded":
-      return (
-        <Badge>
-          Refunded
-        </Badge>
-      );
+      return <Badge>Refunded</Badge>;
 
     default:
-      return (
-        <Badge>
-          Pending
-        </Badge>
-      );
+      return <Badge>Pending</Badge>;
   }
 }

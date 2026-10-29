@@ -221,6 +221,7 @@ export interface AdminListParams {
   mentor_id?: number | string;
   from_date?: string;
 to_date?: string;
+ internship_started?: string; 
 }
 
 export interface AdminStudentImportError {
